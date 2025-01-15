@@ -20,8 +20,6 @@ def create_sequence(metadata_csv_path: Path, overlap: float, length: int) -> lis
     length_microsec = length * 1000000
     overlap = 1-overlap
     df = pd.read_csv(config.DATA_DIR / 'CSVs' / 'GH010038-ACC&GYRO.csv', skiprows=1)
-    if length_microsec > df['time'].max():
-        raise ValueError('Given length is longer than inputted video')
     if not 0 <= overlap <= 1:
         raise ValueError('Overlap must be between 0 and 1')
     
