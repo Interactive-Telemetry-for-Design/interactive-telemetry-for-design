@@ -66,8 +66,6 @@ def train_model(
     model,
     X_train,
     y_train,
-    X_val,
-    y_val,
     sample_weight=None,
     batch_size=16,
     epochs=10,
@@ -94,14 +92,12 @@ def train_model(
 
     with tf.device(gpu_device):
         history = model.fit(
-            X_train, 
+            X_train,
             y_train,
-            validation_data=(X_val, y_val),
             sample_weight=sample_weight,
             batch_size=batch_size,
             epochs=epochs
         )
-    
     return history
 
     
