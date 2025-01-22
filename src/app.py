@@ -1,38 +1,55 @@
 from flask import Flask, jsonify, request, render_template, redirect, url_for, flash
 from src.plotting import prepare_data
-from src.imu_extraction import prepare_input
+from src.imu_extraction import extract_imu_data
 import pandas as pd
 import numpy as np
 import json
 from pathlib import Path
 import os
 from config import config
+from dotenv import load_dotenv
+
+load_dotenv('.env')
 
 app = Flask(__name__, template_folder='../designer-interface')
+app.config['ENV'] = os.getenv('FLASK_ENV')
+app.config['DEBUG'] = os.getenv('FLASK_DEBUG') == '1'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['FLASK_RUN_PORT'] = os.getenv('FLASK_RUN_PORT')
+
 app.config['UPLOAD_FOLDER'] = config.DATA_DIR / 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1000 * 1024 * 1024 # 50gb limit
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Load and prepare data once when starting the server
+# Test df
 df = pd.read_csv(Path('C:/projects/interactive-telemetry-for-design/data/CSVs/GoPro_test.csv'))
+setting = None
 principal_df, mapping = prepare_data(df)
 
 @app.route('/')
 def upload_page():
     return render_template('welcome_tab.html')
 
+@app.route('/predict_continue')
+def predict():
+    return render_template('predict_continue.html')
+
+@app.route('/test')
+def test():
+    return render_template('test.html')
+
 @app.route('/data/uploads', methods=['POST'])
 def handle_upload():
+    # global df
+    global settings
     if request.method == 'POST':
         # Handle file uploads
         mp4_file = request.files.get('mp4-upload')
-        pt_file = request.files.get('model-upload')
         csv_file = request.files.get('CSV-upload')
-        
         # Get form data
-        advanced_settings = {
+        settings = {
             'a1': request.form.get('a1', 3),
             'a2': request.form.get('a2', 3),
             'a3': request.form.get('a3', 3),
@@ -49,46 +66,48 @@ def handle_upload():
             mp4_file.save(mp4_path)
             file_paths['mp4_path'] = str(mp4_path)
             
-        if pt_file and pt_file.filename:
-            pt_path = app.config['UPLOAD_FOLDER'] / pt_file.filename
-            pt_file.save(pt_path)
-            file_paths['pt_path'] = str(pt_path)
             
         if csv_file and csv_file.filename:
-            if not mp4_file and mp_file.filename:
-                # Validate file uploads
+            if not mp4_file and mp4_file.filename:
                 flash('Error: MP4 file is required when uploading a CSV.')
-                return redirect(url_for('welcome_tab.html'))
+                return redirect(url_for('upload_page'))
             csv_path = app.config['UPLOAD_FOLDER'] / csv_file.filename
             csv_file.save(csv_path)
             file_paths['csv_path'] = str(csv_path)
 
-        if 'pt_path' in paths:
-            return redirect(url_for('plot'))  # redirect to predict & 
-    
-        # if 'mp4_path' in paths and 'csv_path' in paths:
-        #     try:
-        #         df = pd.read_csv(paths['csv_path'])
-        #         required_columns = ["TIMESTAMP", "ACCL_x", "ACCL_y", "ACCL_z", "GYRO_x", "GYRO_y", "GYRO_z"]
+        if 'mp4_path' in file_paths and 'csv_path' in file_paths:
+            try:
+                df_t = pd.read_csv(file_paths['csv_path'])
+            except Exception as e:
+                print(f"Error while reading CSV: {e}")
+                flash("An error occurred while reading the CSV file.")
+                return redirect(url_for('upload_page'))
+        
+            required_columns = ["TIMESTAMP", "ACCL_x", "ACCL_y", "ACCL_z", "GYRO_x", "GYRO_y", "GYRO_z"]
 
-        #         if list(df.columns) != required_columns:
-        #             flash("CSV file does not have the required columns in the correct order: TIMESTAMP, ACCL_x, ACCL_y, ACCL_z, GYRO_x, GYRO_y, GYRO_z")
-        #             return redirect(url_for('welcome_tab.html'))
-        #         return df
-        #     except Exception as e:
-        #         print(f"Error while reading CSV: {e}")
-        #         flash("An error occurred while reading the CSV file.")
-        #         return redirect(url_for('welcome_tab.html'))
+            # Create a new DataFrame with only the required columns in the specified order
+            df_t2 = pd.DataFrame({col: df_t[col] for col in required_columns if col in df_t.columns})
+
+            # Check if any required columns are missing
+            if list(df_t2.columns) != required_columns:
+                flash("CSV file does not have the required columns (Capital sensitive): TIMESTAMP, ACCL_x, ACCL_y, ACCL_z, GYRO_x, GYRO_y, GYRO_z", "error")
+                return redirect(url_for('upload_page'))
+            df = df_t2
+            return redirect(url_for('test'))
+
+        # If 'mp4_path' is present, run the extract method
+        if 'mp4_path' in file_paths and not 'csv_path' in file_paths:
+            try:
+                df = extract_imu_data(file_paths['mp4_path'])
+                return redirect(url_for('test'))
+            except Exception as e:
+                print(f"Error while reading extracting IMU data: {e}")
+                flash("An error occurred while trying to extract the IMU data.")
+                return redirect(url_for('upload_page'))
             
-        # # If 'mp4_path' is present, run the extract method
-        # if 'mp4_path' in paths:
-        #     df = extract_imu_data(paths['mp4_path'])
-        #     return df
-        # return redirect(url_for('welcome_tab.html'))
+        flash("You need to upload something")
+        return redirect(url_for('upload_page'))
 
-
-        # Redirect to the plot page
-        return redirect(url_for('plot'))
 
 @app.route('/plot')
 def plot():
