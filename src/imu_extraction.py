@@ -11,8 +11,7 @@ def extract_imu_data(file: Path):
     kolommen = ['TIMESTAMP', 'ACCL_x', 'ACCL_y', 'ACCL_z', 'GYRO_x', 'GYRO_y', 'GYRO_z']
     imu_data_df = pd.DataFrame(columns=kolommen)
 
-    # Retrieve the length of the data, assuming tp.normalized_imu() returns a list of IMU data samples
-    imu_data = tp.normalized_imu()  # Data retrieved from normalized_imu function
+    imu_data = tp.normalized_imu()  # Data retrieved from normalized_imu function, relevant data
     length = len(imu_data)  # Get the number of IMU data samples
     # print(length)
 
