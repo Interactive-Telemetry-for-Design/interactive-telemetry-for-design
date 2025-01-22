@@ -20,19 +20,10 @@
 </head>
 <body>
     <h1>Telemetry for design</h1>
-    <div id="flash-messages">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash-message flash-{{ category }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
     <div>
-        <button id="used-mode-btn" onclick="goToPredictContinue()">Use Trained Model</button>
+        <form method="GET" action="{{ url_for('predict_cont_no_show') }}">
+            <button id="used-mode-btn" type="submit">Use Trained Model</button>
+        </form>
     </div>
     <div>
         <button id="create-new-btn" onclick="showMainContent()">Create New Model</button>
@@ -96,8 +87,9 @@
     <script>
         // Function to go to predict continue page
         function goToPredictContinue() {
-            window.location.href = 'predict_continue.html';
+            window.location.href = 'designer-interface/video_and_timeline_tab.html';
         }
+
 
         // Function to show main content
         function showMainContent() {
