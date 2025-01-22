@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Large Video with MediaSource</title>
+</head>
+<body>
+    <h1>Load Large Video File from Disk</h1>
+    <form id="fileForm">
+        <label for="fileInput">Select a Video File:</label>
+        <input type="file" id="fileInput" accept="video/mp4">
+    </form>
+    <h2>Video Preview:</h2>
+    <video id="videoPlayer" width="640" controls>
+        <source src="file:///C:/projects/tu-delft/interactive-telemetry-for-design/interactive-telemetry-for-design/data/cut-GH010039-0.2.mp4" type="video/mp4">
+
+    </video>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const videoPlayer = document.getElementById('videoPlayer');
+
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files[0]; // Get the selected file
+
+            if (file) {
+                // Initialize MediaSource
+                const mediaSource = new MediaSource();
+                videoPlayer.src = URL.createObjectURL(mediaSource);
+
+                mediaSource.addEventListener('sourceopen', () => {
+                    // Use specific codecs for the SourceBuffer
+                    const mimeCodec = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+
+                    if (MediaSource.isTypeSupported(mimeCodec)) {
+                        const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+
+                        // Read the file in chunks
+                        const fileReader = file.stream().getReader();
+                        function readChunk() {
+                            fileReader.read().then(({ done, value }) => {
+                                if (done) {
+                                    // Signal that we're done appending
+                                    mediaSource.endOfStream();
+                                    return;
+                                }
+
+                                // Append chunk to the buffer
+                                sourceBuffer.appendBuffer(value);
+                                readChunk(); // Read the next chunk
+                            });
+                        }
+
+                        readChunk(); // Start reading chunks
+                    } else {
+                        alert('MIME type or codec not supported: ' + mimeCodec);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

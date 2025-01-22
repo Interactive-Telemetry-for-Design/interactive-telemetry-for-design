@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training</title>
+    <link rel="stylesheet" href="/static/css/training.css">
+    <script type="module" src="/static/js/training.js" defer></script>
+</head>
+<body>
+    <div class="left-panel">
+        <h3>Labels</h3>
+        <button id="addLabelButton">Add Label</button>
+        <button id="removeLabelButton">Remove Label</button>
+        <div id="labelList"></div>
+      </div>
+
+      <div class="main-panel">
+        <video id="video" width="640" controls>
+            <source src="/uploads/cut-GH010039-0.2.mp4" type="video/mp4" />/
+            <!-- <source src="{{ url_for('static', filename='somevideo.mp4') }}" type="video/mp4" /> -->
+            Your browser does not support the video tag.
+        </video>
+
+        <div id="timelineContainer">
+            <div id="playhead"></div>
+        </div>
+
+        <button id="sendAnnotationsButton">Train and Predict</button>
+    </div>
+</body>
+</html>

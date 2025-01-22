@@ -1,0 +1,104 @@
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.video-container {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+video {
+    width: 100%;
+}
+
+.timeline-container {
+    display: flex;
+    gap: 20px;
+}
+
+.labels-panel {
+    width: 200px;
+}
+
+.timeline {
+    flex-grow: 1;
+    position: relative;
+    height: 60px;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+}
+
+.playhead {
+    position: absolute;
+    width: 2px;
+    height: 100%;
+    background: red;
+    pointer-events: none;
+}
+
+.seeker {
+    position: absolute;
+    width: 10px;
+    height: 100%;
+    background: #666;
+    cursor: grab;
+    transform: translateX(-50%);
+}
+
+.block {
+    position: absolute;
+    height: 100%;
+    opacity: 1;
+    transition: opacity 0.3s;
+}
+
+.block.dimmed {
+    opacity: 0.3;
+}
+
+.block-handle {
+    position: absolute;
+    width: 10px;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    cursor: ew-resize;
+}
+
+.block-handle.left {
+    left: 0;
+}
+
+.block-handle.right {
+    right: 0;
+}
+
+.label-btn {
+    margin: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    color: white;
+}
+
+#run-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#add-label-btn {
+    margin: 5px;
+    padding: 5px 10px;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}

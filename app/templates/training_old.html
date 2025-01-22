@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training</title>
+    <link rel="stylesheet" href="/static/css/training.css">
+    <script type="module" src="/static/js/training.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="video-container">
+            <video id="video" controls>
+                <!-- <source src="/static/frames_cut-GH010039-0.2.mp4" type="video/mp4"> -->
+                <source src="/uploads/cut-GH010039-0.2.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        
+        <div class="timeline-container">
+            <div class="labels-panel">
+                <button id="add-label-btn">Add Label</button>
+                <div id="labels-list"></div>
+            </div>
+            
+            <div class="timeline" id="timeline">
+                <div class="playhead" id="playhead"></div>
+                <div class="seeker" id="seeker"></div>
+            </div>
+        </div>
+        
+        <button id="run-btn">Run</button>
+    </div>
+</body>
+</html>

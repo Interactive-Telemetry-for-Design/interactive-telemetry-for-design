@@ -1,0 +1,92 @@
+/* Basic resets */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: sans-serif;
+    background: #f0f0f0;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  
+  .video-container {
+    margin-bottom: 20px;
+  }
+  
+  /* Timeline container */
+  .timeline-container {
+    width: 640px; /* Keep consistent with video width, or choose a fixed width if you prefer */
+    margin: 0 auto;
+  }
+  
+  /* The scale bar (with ticks) */
+  .timeline-scale {
+    position: relative;
+    height: 20px;
+    background: #ddd;
+    border-radius: 4px 4px 0 0;
+    overflow: hidden;
+  }
+  
+  /* The timeline (where we can draw a selection block and move the playhead) */
+  .timeline {
+    position: relative;
+    height: 40px;
+    background: #bbb;
+    border-radius: 0 0 4px 4px;
+    cursor: pointer;
+  }
+  
+  /* Time block selection */
+  .time-block {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(255, 200, 0, 0.4);
+    border: 2px solid rgba(255, 200, 0, 0.8);
+    pointer-events: none; /* Let clicks pass through so dragging the timeline still works */
+  }
+  
+  /* Playhead (vertical line + handle) */
+  .playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #ff4444;
+    cursor: pointer;
+  }
+  
+  .playhead-handle {
+    position: absolute;
+    top: -10px;
+    left: -5px;
+    width: 12px;
+    height: 20px;
+    background: #ff4444;
+    border-radius: 4px;
+  }
+  
+  /* Ticks inside the scale */
+  .tick {
+    position: absolute;
+    width: 1px;
+    background: #333;
+    height: 10px;
+    top: 5px;
+  }
+  
+  .tick-label {
+    position: absolute;
+    top: 0;
+    left: 4px;
+    font-size: 10px;
+    color: #333;
+  }
+  

@@ -1,0 +1,149 @@
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+:root {
+    --background-color: white;
+    /* --background-color: hsl(240, 9%, 11%); */
+    --video-width: 640px;
+    /* TODO: */
+	--background-color-button-hover: hsl(0, 0%, 85%);
+	--border-buttons: calc(1 / 1080 * 100vh) solid black;
+}
+
+html {
+	font-size: calc(16 / 1080 * 100vh);
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--background-color);
+    display: flex;
+    flex-direction: row;
+    /* TODO: */
+    color: hsl(278, 3%, 48%);
+    font-family: sans-serif, Arial, Helvetica;
+}
+
+/* TODO: */
+/* user-select: none; /* prevents text selection / highlighting */
+
+
+/* Hide element and do not take up original space */
+.hidden {
+    display: none !important;
+}
+
+/* Hide element but take up original space */
+.invisible {
+    visibility: hidden;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+
+
+
+
+.left-panel {
+    width: 200px;
+    padding: 10px;
+    /* border-right: 1px solid #ccc; */
+}
+
+.main-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+}
+
+#labelList {
+  margin-top: 1rem;
+}
+
+.label-button {
+    display: block;
+    margin: 5px 0;
+    padding: 8px;
+    border: none;
+    cursor: pointer;
+    color: white;
+    /* outline: none; */
+}
+
+.label-button:hover {
+    opacity: 0.8;
+}
+
+#addLabelButton, #removeLabelButton {
+    margin: 5px 5px 5px 0;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+#timelineContainer {
+    position: relative;
+    width: var(--video-width);
+    height: 50px;
+    background-color: white;
+    margin-top: 20px;
+    cursor: pointer;
+    border-top: 2px solid black;
+    border-bottom: 2px solid black;
+}
+
+#playhead {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background-color: red;
+    /* TODO: */
+    pointer-events: none; /* So it doesn't interfere with clicks on the timeline */
+}
+
+.timeline-block {
+    position: absolute;
+    height: 100%;
+    opacity: 1;
+    /* border: 2px solid transparent; /* For highlighting if needed */
+}
+
+.timeline-block.dimmed {
+    opacity: 0.4;
+}
+
+.timeline-block > .handle {
+    position: absolute;
+    width: 6px;
+    height: 100%;
+    background-color: gray;
+    cursor: ew-resize;
+}
+
+.timeline-block > .handle-left {
+    left: 0;
+}
+
+.timeline-block > .handle-right {
+    right: 0;
+}
+
+#sendAnnotationsButton {
+    display: block;
+    /* margin: 5px 0; */
+    padding: 8px;
+    border: none;
+    cursor: pointer;
+    /* color: white; */
+    /* outline: none; */
+
+    /* TODO: probably flex issue */
+    width: fit-content;
+}
