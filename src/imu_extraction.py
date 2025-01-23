@@ -5,7 +5,7 @@ from config import config
 from pprint import pprint
 from pathlib import Path
 
-def extract_imu_data(file: Path):
+def extract_imu_data(file: Path):   	        # input is gopro video, sony, etc......
     tp = telemetry_parser.Parser(str(file))
     # Define the columns for the dataframe
     kolommen = ['TIMESTAMP', 'ACCL_x', 'ACCL_y', 'ACCL_z', 'GYRO_x', 'GYRO_y', 'GYRO_z']
