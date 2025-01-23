@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv('.env')
 
-app = Flask(__name__, template_folder='../designer-interface')
+app = Flask(__name__)
 app.config['ENV'] = os.getenv('FLASK_ENV')
 app.config['DEBUG'] = os.getenv('FLASK_DEBUG') == '1'
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -38,6 +38,12 @@ def predict_continue():
 @app.route('/alternative_continue', methods=['GET'])
 def predict_cont_no_show():
     return render_template('predict_continue.html', show_model_upload=False)
+
+@app.route('/test')
+def test():
+    print(df)
+    print(settings)
+    return render_template('test.html')
 
 @app.route('/training', methods=['POST'])
 def training():

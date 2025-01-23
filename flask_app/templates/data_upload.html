@@ -1,25 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Upload and Advanced Settings</title>
-    <style>
-        /* Add some basic styling for the buttons */
-        #used-mode-btn, #create-new-btn {
-            padding: 10px 20px;
-            margin: 10px;
-            cursor: pointer;
-        }
-        
-        /* Hide the form content initially */
-        #main-content {
-            display: none;
-        }
-    </style>
+    <title>Interactive Telemetry Exploration</title>
+    <link rel="stylesheet" href="static/styles.css">
 </head>
+
 <body>
-    <h1>Telemetry for design</h1>
+    <!-- Navigation Bar -->
+    <header>
+        <nav class="navbar">
+            <div class="logo">
+                <a href="#">Interactive Telemetry Exploration</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('home') }}">Home</a></li>
+                <li><a href="{{ url_for('data_upload') }}">Data Upload</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="content">
+        <h1>Data Upload</h1>
+        <p>Please upload your data</p>
+    <div>
+
     <div id="flash-messages">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -31,16 +38,10 @@
             {% endif %}
         {% endwith %}
     </div>
-    <div>
-        <button id="used-mode-btn" onclick="goToPredictContinue()">Use Trained Model</button>
-    </div>
-    <div>
-        <button id="create-new-btn" onclick="showMainContent()">Create New Model</button>
-    </div>
 
     <!-- Main content div that will be initially hidden -->
     <div id="main-content">
-        <form method="POST" action="{{ url_for('handle_upload') }}" enctype="multipart/form-data" id="upload-form">
+        <form method="POST" action="{{ url_for('data_upload') }}" enctype="multipart/form-data" id="upload-form">
             <!-- MP4 File Upload -->
             <div class="file-upload">
                 <label for="mp4-upload">Upload GoPro Video:</label>
