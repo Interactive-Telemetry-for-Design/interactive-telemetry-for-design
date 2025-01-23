@@ -102,24 +102,6 @@ body {
     transform: scale(1.05);
 }
 
-.small-button {
-    display: inline-block;
-    background-color: #ff6a00;
-    color: #fff;
-    font-size: 1rem; /* Slightly smaller font size */
-    font-weight: bold;
-    padding: 10px 30px; /* Slightly smaller padding */
-    border-radius: 50px;
-    text-decoration: none;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
-}
-
-.small-button:hover {
-    background-color: #e65c00;
-    transform: scale(1.05);
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
     .navbar {
