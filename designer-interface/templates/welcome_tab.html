@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Telemetry Exploration</title>
+    <title>Home</title>
     <link rel="stylesheet" href="static/styles.css">
     <style>
         #main-content {
@@ -175,13 +175,15 @@
             const continueBtn = document.getElementById('continue-btn');
 
             if (mp4Upload && (!csvRequired || (csvRequired && csvUpload))) {
-                continueBtn.style.backgroundColor = 'green';
+                continueBtn.style.backgroundColor = 'darkslategrey';
                 continueBtn.style.cursor = 'pointer';
                 continueBtn.disabled = false;
+                continueBtn.classList.add('continue-button-enabled');
             } else {
                 continueBtn.style.backgroundColor = 'grey';
                 continueBtn.style.cursor = 'not-allowed';
                 continueBtn.disabled = true;
+                continueBtn.classList.remove('continue-button-enabled');
             }
         }
 
