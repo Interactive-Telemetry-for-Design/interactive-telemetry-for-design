@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import av
+import cv2
 
 
 def getIMU(dataframe_path):
