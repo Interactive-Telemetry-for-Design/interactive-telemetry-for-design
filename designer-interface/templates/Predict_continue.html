@@ -60,52 +60,59 @@
         <p>Please upload a saved model</p>
     <div>
 
-    <!-- Model Upload (conditionally shown) -->
-    {% if show_model_upload %}
-    <div class="file-upload">
-        <label for="model-upload">Upload Model (.pt file):</label>
-        <input type="file" id="model-upload" name="model-upload" accept=".pt">
+    <div id="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
     </div>
-    {% else %}
-    <div class="button-container">
-        <form action="{{ url_for('download_model') }}" method="GET" style="display: inline;">
-            <button type="submit">Download Model</button>
-        </form>
-    </div>
-    {% endif %}
-
-    <!-- Common File Uploads -->
-    <div class="file-upload">
-        <label for="mp4-upload">Upload GoPro Video:</label>
-        <input type="file" id="mp4-upload" name="mp4-upload" accept=".mp4" onchange="checkContinue()">
-    </div>
-
-    <!-- Checkbox to Show/Hide CSV File Upload -->
-    <div class="center-container">
-        <div class="checkbox-container">
-            <input type="checkbox" id="toggle-CSV-upload" onchange="toggleCSVUpload()">
-            <label for="toggle-CSV-upload">Upload IMU and Video Separately</label>
-        </div>
-    </div>
-
-
-    <!-- CSV File Upload -->
-    <div id="CSV-upload-container" class="file-upload" style="display: none;">
-        <label for="CSV-upload">Upload IMU data:</label>
-        <input type="file" id="CSV-upload" name="CSV-upload" accept=".csv" onchange="checkContinue()">
-    </div>
-
     
-    <!-- Navigation Buttons -->
-    <div class="button-container">
-        <form action="{{ url_for('predict') }}" method="POST" style="display: inline;">
-            <button class="small-button" type="submit">Predict Video</button>
+        <form id="upload-form" action="{{ url_for('upload_files') }}" method="POST" enctype="multipart/form-data">
+            <!-- Model Upload (conditionally shown) -->
+            {% if show_model_upload %}
+            <div class="file-upload">
+                <label for="model-upload">Upload Model (.pkl file):</label>
+                <input type="file" id="model-upload" name="model_upload" accept=".pkl" onchange="checkContinue()">
+            </div>
+            {% else %}
+            <div class="button-container">
+                <a href="{{ url_for('download_model') }}" class="button">Download Model</a>
+            </div>
+            {% endif %}
+    
+            <!-- GoPro Video Upload -->
+            <div class="file-upload">
+                <label for="mp4-upload">Upload GoPro Video:</label>
+                <input type="file" id="mp4-upload" name="mp4_upload" accept=".mp4" onchange="checkContinue()">
+            </div>
+    
+            <!-- Checkbox to Show/Hide CSV File Upload -->
+            <div class="center-container">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="toggle-CSV-upload" onchange="toggleCSVUpload()">
+                    <label for="toggle-CSV-upload">Upload IMU and Video Separately</label>
+                </div>
+            </div>
+    
+            <!-- CSV File Upload -->
+            <div id="CSV-upload-container" class="file-upload" style="display: none;">
+                <label for="CSV-upload">Upload IMU data:</label>
+                <input type="file" id="CSV-upload" name="csv_upload" accept=".csv" onchange="checkContinue()">
+            </div>
+            
+            <!-- Navigation Buttons -->
+            <div class="button-container">
+                <input type="hidden" id="action-input" name="action" value="">
+                <button type="submit" id="predict-btn" class="small-button" style="background-color: grey" disabled onclick="setAction('predict')">Predict Video</button>
+                <button type="submit" id="continue-btn" class="small-button" style="background-color: grey" disabled onclick="setAction('continue_training')">Continue Training</button>
+            </div>
         </form>
-        <form action="{{ url_for('training') }}" method="POST" style="display: inline;">
-            <button class="small-button" type="submit">Continue Training</button>
-        </form>
-    </div>
-
+        
     <script>
         function toggleCSVUpload() {
             const CSVUploadContainer = document.getElementById('CSV-upload-container');
@@ -114,12 +121,30 @@
         }
 
         function checkContinue() {
+            const modelHere = document.getElementById('model-upload').files.length > 0;
+            const modelUpload = (show_model_upload && modelHere) || (!show_model_upload && !modelHere);
             const mp4Upload = document.getElementById('mp4-upload').files.length > 0;
             const csvRequired = document.getElementById('toggle-CSV-upload').checked;
             const csvUpload = document.getElementById('CSV-upload').files.length > 0;
+            const predictBtn = document.getElementById('predict-btn');
+            const continueBtn = document.getElementById('continue-btn');
 
             // Additional validation can be added here if needed
-            return mp4Upload && (!csvRequired || (csvRequired && csvUpload));
+            if (modelUpload && mp4Upload && (!csvRequired || (csvRequired && csvUpload))) {
+                continueBtn.style.backgroundColor = 'darkslategrey';
+                continueBtn.style.cursor = 'pointer';
+                continueBtn.disabled = false;
+                predictBtn.style.backgroundColor = 'darkslategrey';
+                predictBtn.style.cursor = 'pointer';
+                predictBtn.disabled = false;
+            } else {
+                continueBtn.style.backgroundColor = 'grey';
+                continueBtn.style.cursor = 'not-allowed';
+                continueBtn.disabled = true;
+                predictBtn.style.backgroundColor = 'grey';
+                predictBtn.style.cursor = 'not-allowed';
+                predictBtn.disabled = true;
+            }
         }
     </script>
 </body>
