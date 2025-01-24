@@ -8,9 +8,6 @@ from tensorflow.keras import mixed_precision
 from config import config
 import pickle
 import src.sequencing as sequencing
-import src.labeler as labeler
-import src.anomaly_detection as anomaly
-import src.imu_extraction as imu_extraction
 import os
 import zipfile
 
@@ -176,44 +173,20 @@ def predict(model, sequences, label_mapping):
 
     # Combine sequences, predicted labels, and confidence scores into a DataFrame
     prediction_data = sequencing.combine_and_restitch_sequences(sequences, predicted_labels, confidence_scores)
-    prediction_data = np.hstack((prediction_data[:, :1], prediction_data[:, -3:]))
-    prediction_df = pd.DataFrame(prediction_data, columns=['timestamp', 'frameindex', 'label', 'confidence_score'])
+    prediction_df = pd.DataFrame(prediction_data, columns=['TIMESTAMP', 'ACCL_x', 'ACCL_y', 'ACCL_z', 'GYRO_x', 'GYRO_y', 'GYRO_z', 'FRAME_INDEX', 'LABEL', 'CONFIDENCE'])
     
-    result = prediction_df.groupby('frameindex').apply(
+    result = prediction_df.groupby('FRAME_INDEX').apply(
         lambda x: pd.Series({
-            'average_prediction': most_frequent_label(x['label'].values),
-            'average_confidence': x['confidence_score'].mean()
+            'average_prediction': most_frequent_label(x['LABEL'].values),
+            'average_confidence': x['CONFIDENCE'].mean()
         }, dtype=object)
     ).reset_index()
 
     result_list = result.to_dict(orient='records')
-    return result_list
+    return prediction_df, result_list
 
-label_mapping = None
-model = None
-unlabel_df = None
-old_sequences = None
-settings = {
-    "video_path": path,
-    "imu_path": path,
-    "from_scratch": True,
-    "overlap": 0.50,
-    "length": 10,
-    "epochs": 5,
-    "batch_size": 16,
-    "dropout": 0.2,
-    "dense_activation": "sigmoid",
-    "LSTM_activation": "tanh",
-    "LSTM_units": 256,
-    "optimizer": "adam",
-    "loss": "binary_crossentropy",
-    "metrics": ["accuracy"],
-    "learning_rate": 0.001,
-    "weight_decay": None,
-    "target_sequence_length": None
-}
 
-def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_mapping=None, stored_sequences=None):
+def run_model(labeled_frames, settings, model=None, df=None, label_mapping=None, stored_sequences=None):
     # check if labels are the same
     unique_labels = sorted(set(item["label"] for item in label_list))
     current_labels = sorted(label_mapping.keys())
@@ -221,17 +194,6 @@ def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_map
         settings["from_scratch"] = True
         label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
     n_labels = len(label_mapping)
-
-    # extract data (could be done on page load)
-    if settings["from_scratch"] == True:
-        if imu_path = None:
-            unlabeled_df = imu_extraction.extract_imu_data(settings["video_path"])
-        else:
-            unlabeled_df = pd.read_csv(settings["imu_path"])
-        
-        unlabeled_df = labeler.add_frame_index(unlabeled_df)
-    
-    df = unlabeled_df.copy()
     
     # label datapoints
     for item in labeled_frames:
@@ -269,7 +231,7 @@ def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_map
             LSTM_units=settings["LSTM_units"],
             optimizer=settings["optimizer"],
             loss=settings["loss"],
-            metrics=settings["metrics"]
+            metrics=settings["metrics"],
             learning_rate=settings["learning_rate"],
             weight_decay=settings["weight_decay"]
         )
@@ -284,72 +246,26 @@ def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_map
         epochs=settings["epochs"]
     )
 
-    # predict current video
-    predict_sequences = sequencing.get_sequences_pure_data(sequences)
-    predictions = model.predict(test_sequences) # shape: batches, n_datapoints, n_labels
+    prediction_df, result_list = predict(model, sequences, label_mapping)
 
-    predicted_classes = np.argmax(predictions, axis=-1)
-    confidence_scores = np.max(predictions, axis=-1)
-
-    # Map the predicted classes to their corresponding string labels
-    reverse_label_mapping = {idx: label for label, idx in label_mapping.items()}
-    predicted_labels = [reverse_label_mapping[pred_class] for pred_class in predicted_classes]
-
-    # Combine sequences, predicted labels, and confidence scores into a DataFrame
-    prediction_data = sequencing.combine_and_restitch_sequences(sequences, predicted_labels, confidence_scores)
-    prediction_data = np.hstack((prediction_data[:, :1], prediction_data[:, -3:]))
-    prediction_df = pd.DataFrame(prediction_data, columns=['timestamp', 'frameindex', 'label', 'confidence_score'])
-    
-    result = prediction_df.groupby('frameindex').apply(
-        lambda x: pd.Series({
-            'average_prediction': most_frequent_label(x['label'].values),
-            'average_confidence': x['confidence_score'].mean()
-        }, dtype=object)
-    ).reset_index()
-
-    result_list = result.to_dict(orient='records')
-    # predictions to restiched df with collums: [timestamp, frameindex, prediction, confidence score]
-    # predictions [[frameindex = 1, average prediction, average confidence], [frameindex = 2, average prediction, average confidence]]
-
-    return result_list, settings, model, label_mapping, unlabeled_df, padded_sequences, padded_labels
+    return result_list, settings, model, prediction_df, label_mapping, unlabeled_df, padded_sequences, padded_labels
 
 
 def model_predict(settings, model, label_mapping):
     n_labels = len(label_mapping)
 
-    if imu_path = None:
-        df = imu_extraction.extract_imu_data(settings["video_path"])
-    else:
-        df = pd.read_csv(settings["imu_path"])
-    
     sequences = sequencing.create_sequence(df, settings["overlap"], settings["length"])
-    predict_sequences = sequencing.get_sequences_pure_data(sequences)
-    
-    predictions = model.predict(test_sequences) # shape: batches, n_datapoints, n_labels
-
-    predicted_classes = np.argmax(predictions, axis=-1)
-    confidence_scores = np.max(predictions, axis=-1)
-
-    reverse_label_mapping = {idx: label for label, idx in label_mapping.items()}
-    predicted_labels = [reverse_label_mapping[pred_class] for pred_class in predicted_classes]
-
-    sequences_list = [sequences, predicted_labels, confidence_scores]
-
-    # result = df.groupby('frameindex').apply(
-    #     lambda x: pd.Series({
-    #         'average_prediction': most_frequent_label(x['prediction'].values),
-    #         'average_confidence': x['confidence_score'].mean()
-    #     }, dtype=object)
-    # ).reset_index()
-    # result_list = result.to_dict(orient='records')
+    prediction_df, result_list = predict(model, sequences, label_mapping)
 
     # predictions to restiched df with collums: [timestamp, frameindex, prediction, confidence score]
     # predictions [[frameindex = 1, average prediction, average confidence], [frameindex = 2, average prediction, average confidence]]
-    return
+    return prediction_df, result_list
+
 
 def model_done(padded_sequences, padded_labels, stored_sequences):
     stored_sequences = sequencing.save_used_data(padded_sequences, padded_labels, stored_sequences)
     return stored_sequences
+
 
 def save_model(model, label_mapping, settings, stored_sequences, filename="model.zip"):
     # Save components to temporary files
