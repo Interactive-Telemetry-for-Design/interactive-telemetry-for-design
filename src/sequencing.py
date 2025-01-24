@@ -2,13 +2,17 @@ import numpy as np
 import pandas as pd
 from typing import Union
 from typing import Union
+from typing import Union
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+import tensorflow as tf
 import tensorflow as tf
 import tensorflow as tf
 
 def create_sequence(df: pd.DataFrame, overlap: float, length: int, target_sequence_length: Union[int, None] = None) -> np.ndarray:
 def create_sequence(df: pd.DataFrame, overlap: float, length: int, target_sequence_length: Union[int, None] = None) -> np.ndarray:
+def create_sequence(df: pd.DataFrame, overlap: float, length: int, target_sequence_length: Union[int, None] = None) -> np.ndarray:
     """
+    Returns the dataframe split into sequences with consistent rounding and optional length control.
     Returns the dataframe split into sequences with consistent rounding and optional length control.
     Returns the dataframe split into sequences with consistent rounding and optional length control.
 
@@ -16,7 +20,11 @@ def create_sequence(df: pd.DataFrame, overlap: float, length: int, target_sequen
         df: dataframe containing acc en gyro data.
         overlap: Fraction of overlap between partitions (0 <= overlap < 1).
         overlap: Fraction of overlap between partitions (0 <= overlap < 1).
+        overlap: Fraction of overlap between partitions (0 <= overlap < 1).
         length: Length of each sequence in seconds.
+        target_sequence_length: Optional desired length of output sequences.
+            If None, sequences retain original length.
+            If specified, sequences are padded or truncated to match.
         target_sequence_length: Optional desired length of output sequences.
             If None, sequences retain original length.
             If specified, sequences are padded or truncated to match.
@@ -27,10 +35,15 @@ def create_sequence(df: pd.DataFrame, overlap: float, length: int, target_sequen
     Returns:
         Padded numpy array of sequences.
         Padded numpy array of sequences.
+        Padded numpy array of sequences.
     """
     if not 0 <= overlap < 1:
     if not 0 <= overlap < 1:
+    if not 0 <= overlap < 1:
         raise ValueError('Overlap must be between 0 and 1')
+
+    overlap = 1 - overlap
+    
 
     overlap = 1 - overlap
     
@@ -41,10 +54,13 @@ def create_sequence(df: pd.DataFrame, overlap: float, length: int, target_sequen
     tensors = []
     
     tensors = []
+    
+    tensors = []
     start = 0
 
     while start <= max_time:
         end = start + length
+        partition = df[(df['TIMESTAMP'] >= start) & (df['TIMESTAMP'] < end)].to_numpy()
         partition = df[(df['TIMESTAMP'] >= start) & (df['TIMESTAMP'] < end)].to_numpy()
         partition = df[(df['TIMESTAMP'] >= start) & (df['TIMESTAMP'] < end)].to_numpy()
         tensors.append(partition)
@@ -52,11 +68,26 @@ def create_sequence(df: pd.DataFrame, overlap: float, length: int, target_sequen
         if end > max_time:
         
         if end > max_time:
+        
+        if end > max_time:
             break
+        
         
         
         start += length*overlap
 
+    # Pad or truncate sequences if target_sequence_length is specified
+    if target_sequence_length is not None:
+        def adjust_sequence(seq):
+            if len(seq) > target_sequence_length:
+                return seq[:target_sequence_length]
+            elif len(seq) < target_sequence_length:
+                return np.pad(seq, ((0, target_sequence_length - len(seq)), (0, 0)), mode='constant')
+            return seq
+        
+        tensors = [adjust_sequence(seq) for seq in tensors]
+
+    return pad_sequences(tensors, padding='post', dtype='float32')
     # Pad or truncate sequences if target_sequence_length is specified
     if target_sequence_length is not None:
         def adjust_sequence(seq):
@@ -92,6 +123,7 @@ def get_sequences_pure_data(sequence_list: list[np.ndarray]) -> np.ndarray:
     """
     pure_data_list = [sequence[:, 1:7] for sequence in sequence_list]
     pure_data_list = [sequence[:, 1:7] for sequence in sequence_list]
+    pure_data_list = [sequence[:, 1:7] for sequence in sequence_list]
 
     return np.stack(pure_data_list, axis=0)
 
@@ -106,6 +138,7 @@ def get_pure_labels(sequence_list: list[np.ndarray]) -> np.ndarray:
         A 3D ndarray containing the last column of each sequence.
     """
     # Extract last column of each sequence
+    labels_list = [sequence[:, 8:] for sequence in sequence_list]
     labels_list = [sequence[:, 8:] for sequence in sequence_list]
     labels_list = [sequence[:, 8:] for sequence in sequence_list]
 
