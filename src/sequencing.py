@@ -3,6 +3,7 @@ import pandas as pd
 from typing import Union
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import tensorflow as tf
+from pprint import pprint
 
 def create_sequence(df: pd.DataFrame, overlap: float, length: int, target_sequence_length: Union[int, None] = None) -> np.ndarray:
     """
@@ -50,7 +51,7 @@ def create_sequence(df: pd.DataFrame, overlap: float, length: int, target_sequen
         
         tensors = [adjust_sequence(seq) for seq in tensors]
 
-    return pad_sequences(tensors, padding='post', dtype='float32')
+    return np.stack(pad_sequences(tensors, padding='post', dtype='float32'), axis=0)
 
 def get_sequences_pure_data(sequence_list: list[np.ndarray]) -> np.ndarray:
     """
@@ -130,8 +131,8 @@ def combine_and_restitch_sequences(original_sequences, predicted_labels, confide
     # Add predicted labels as an additional column
     combined_sequences = np.concatenate([
         original_sequences, 
-        predicted_labels[..., np.newaxis], 
-        confidence_scores[..., np.newaxis]
+        predicted_labels[:,:, np.newaxis], 
+        confidence_scores[:,:, np.newaxis]
     ], axis=2)
     
     # Flatten sequences for restitching

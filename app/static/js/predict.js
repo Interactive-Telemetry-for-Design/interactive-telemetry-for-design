@@ -753,7 +753,3 @@ function adoptAIBlock(aiBlock){
   unselectAIBlock();
   console.log('Adopted block => new GT block', newBlock);
 }
-
-
-
-
