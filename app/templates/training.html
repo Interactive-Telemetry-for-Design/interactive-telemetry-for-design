@@ -1,32 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Training</title>
-    <link rel="stylesheet" href="/static/css/training.css">
-    <script type="module" src="/static/js/training.js" defer></script>
+  <meta charset="UTF-8">
+  <title>Training</title>
+  <link rel="stylesheet" href="/static/css/training.css">
+  <script type="module" src="/static/js/training.js" defer></script>
 </head>
 <body>
-    <div class="left-panel">
-        <h3>Labels</h3>
-        <button id="addLabelButton">Add Label</button>
-        <button id="removeLabelButton">Remove Label</button>
-        <div id="labelList"></div>
+  <!-- Left Panel: Labels & Buttons -->
+  <div class="left-panel">
+    <h3>Labels</h3>
+    <!-- Add Label Only -->
+    <button id="addLabelButton">Add Label</button>
+    <div id="labelList"></div>
+
+    <!-- Epoch field (default=5, min=1) -->
+    <div style="margin-top: 10px;">
+      <label for="epochInput">Epochs:</label>
+      <input type="number" id="epochInput" value="5" min="1" />
+    </div>
+
+    <button id="sendAnnotationsButton" style="margin-top: 10px;">
+      Train and Predict
+    </button>
+
+    <button id="finishButton" style="margin-top: 10px;">
+      Finish
+    </button>
+  </div>
+
+  <!-- Main Panel: video + scrollable timelines -->
+  <div class="main-panel">
+    <div class="video-wrapper">
+      <video id="video" controls>
+        <source src="/uploads/GH010051.MP4" type="video/mp4"/>
+        Your browser does not support the video tag.
+      </video>
+    </div>
+
+    <!-- Timelines container: horizontally scrollable if wide -->
+    <div class="timelines-container">
+      <!-- 1) Ground Truth (editable) -->
+      <div class="timeline-row">
+        <div class="timeline-label">GT</div>
+        <div id="groundTruthTimeline" class="timeline-container">
+          <div class="playhead"></div>
+        </div>
       </div>
 
-      <div class="main-panel">
-        <video id="video" width="640" controls>
-            <source src="/uploads/cut-GH010039-0.2.mp4" type="video/mp4" />/
-            <!-- <source src="{{ url_for('static', filename='somevideo.mp4') }}" type="video/mp4" /> -->
-            Your browser does not support the video tag.
-        </video>
-
-        <div id="timelineContainer">
-            <div id="playhead"></div>
+      <!-- 2) AI Predictions (read-only, adoptable) -->
+      <div class="timeline-row">
+        <div class="timeline-label">AI</div>
+        <div id="aiTimeline" class="timeline-container">
         </div>
+      </div>
 
-        <button id="sendAnnotationsButton">Train and Predict</button>
+      <!-- 3) Ci Predictions (read-only) -->
+      <div class="timeline-row">
+        <div class="timeline-label">Ci</div>
+        <div id="ciTimeline" class="timeline-container">
+        </div>
+      </div>
     </div>
+  </div>
 </body>
 </html>
