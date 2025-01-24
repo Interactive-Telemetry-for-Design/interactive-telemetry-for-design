@@ -186,9 +186,9 @@ def predict(model, sequences, label_mapping):
     return prediction_df, result_list
 
 
-def run_model(labeled_frames, settings, model=None, df=None, label_mapping=None, stored_sequences=None):
+def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_mapping=None, stored_sequences=None):
     # check if labels are the same
-    unique_labels = sorted(set(item["label"] for item in label_list))
+    unique_labels = sorted(set(item["label"] for item in labeled_frames))
     current_labels = sorted(label_mapping.keys())
     if unique_labels != current_labels:
         settings["from_scratch"] = True
@@ -196,10 +196,12 @@ def run_model(labeled_frames, settings, model=None, df=None, label_mapping=None,
     n_labels = len(label_mapping)
     
     # label datapoints
+    df = unlabeled_df.copy()
+    df["FRAME_INDEX"] = df["FRAME_INDEX"].astype(int)
     for item in labeled_frames:
         label = item["label"]
-        start_frame = item["beginning_frame"]
-        end_frame = item["end_frame"]
+        start_frame = item["frame_start"]
+        end_frame = item["frame_end"]
         
         df.loc[(df["FRAME_INDEX"] >= start_frame) & (df["FRAME_INDEX"] <= end_frame), "LABEL"] = label
 
@@ -247,6 +249,7 @@ def run_model(labeled_frames, settings, model=None, df=None, label_mapping=None,
     )
 
     prediction_df, result_list = predict(model, sequences, label_mapping)
+    settings["from_scratch"] = False
 
     return result_list, settings, model, prediction_df, label_mapping, unlabeled_df, padded_sequences, padded_labels
 
