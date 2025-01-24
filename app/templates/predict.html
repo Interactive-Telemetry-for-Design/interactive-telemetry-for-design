@@ -1,28 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>je predict mama</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+  <meta charset="UTF-8">
+  <title>Training</title>
+  <link rel="stylesheet" href="/static/css/predict.css">
+  <script type="module" src="/static/js/predict.js" defer></script>
 </head>
-
 <body>
-    <!-- Navigation Bar -->
-    <header>
-        <nav class="navbar">
-            <div class="logo">
-                <a href="#">Interactive Telemetry Exploration</a>
-            </div>
-            <ul class="nav-links">
-                <li><a href="{{ url_for('upload_page') }}">Home</a></li>
-                <li><a href="{{ url_for('predict') }}">Predict</a></li>
-            </ul>
-        </nav>
-    </header>
+  <!-- Left Panel: Labels & Buttons -->
+  <div class="left-panel">
+    <h3>Labels</h3>
+    <!-- Add Label Only -->
+    <button id="addLabelButton">Add Label</button>
+    <div id="labelList"></div>
 
-    <div class="content">
-        <h1>Predict</h1>
-        <p>...</p>
-    <div>
+    <!-- Epoch field (default=5, min=1) -->
+    <div style="margin-top: 10px;">
+      <label for="epochInput">Epochs:</label>
+      <input type="number" id="epochInput" value="5" min="1" />
+    </div>
+
+    <button id="sendAnnotationsButton" style="margin-top: 10px;">
+      Train and Predict
+    </button>
+
+    <button id="finishButton" style="margin-top: 10px;">
+      Finish
+    </button>
+  </div>
+
+  <!-- Main Panel: video + scrollable timelines -->
+  <div class="main-panel">
+    <div class="video-wrapper">
+      <video id="video" controls>
+        <source src="{{ video_src }}" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+    </div>
+
+    <!-- Timelines container: horizontally scrollable if wide -->
+    <div class="timelines-container">
+      <!-- 1) Ground Truth (editable) -->
+      <div class="timeline-row">
+        <div class="timeline-label">GT</div>
+        <div id="groundTruthTimeline" class="timeline-container">
+          <div class="playhead"></div>
+        </div>
+      </div>
+
+      <!-- 2) AI Predictions (read-only, adoptable) -->
+      <div class="timeline-row">
+        <div class="timeline-label">AI</div>
+        <div id="aiTimeline" class="timeline-container">
+        </div>
+      </div>
+
+      <!-- 3) Ci Predictions (read-only) -->
+      <div class="timeline-row">
+        <div class="timeline-label">Ci</div>
+        <div id="ciTimeline" class="timeline-container">
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
+</html>

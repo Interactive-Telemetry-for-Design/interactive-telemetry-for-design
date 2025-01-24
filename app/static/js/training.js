@@ -365,92 +365,6 @@ function createBlock(label) {
 /********************************************************************
  * LABELS
  ********************************************************************/
-/********************************************************************
- * LABEL NAMING MODAL
- ********************************************************************/
-const labelNameModal = document.getElementById('labelNameModal');
-const labelNameInput = document.getElementById('labelNameInput');
-const confirmLabelName = document.getElementById('confirmLabelName');
-const cancelLabelName = document.getElementById('cancelLabelName');
-
-let pendingLabelColor = '';
-let pendingLabelResolve = null;
-
-function openLabelNameModal() {
-  labelNameModal.style.display = 'block';
-  labelNameInput.value = '';
-  labelNameInput.focus();
-}
-
-function closeLabelNameModal() {
-  labelNameModal.style.display = 'none';
-}
-
-confirmLabelName.addEventListener('click', () => {
-  const labelName = labelNameInput.value.trim() || `Label ${labelCounter}`;
-  
-  if (pendingLabelResolve) {
-    pendingLabelResolve({
-      id: Date.now() + '-' + Math.random(),
-      name: labelName,
-      color: pendingLabelColor
-    });
-    pendingLabelResolve = null;
-  }
-  
-  closeLabelNameModal();
-});
-
-cancelLabelName.addEventListener('click', () => {
-  closeLabelNameModal();
-  if (pendingLabelResolve) {
-    pendingLabelResolve(null);
-    pendingLabelResolve = null;
-  }
-});
-
-// Modify addLabelButton event listener to use modal
-addLabelButton.addEventListener('click', () => {
-  createLabelWithModal();
-});
-
-function createLabelWithModal() {
-  return new Promise((resolve) => {
-    pendingLabelColor = getRandomColor();
-    pendingLabelResolve = resolve;
-    openLabelNameModal();
-  }).then((labelObj) => {
-    if (labelObj) {
-      labels.push(labelObj);
-      labelCounter++;
-
-      const button = document.createElement('button');
-      button.classList.add('label-button');
-      button.style.backgroundColor = labelObj.color;
-      button.innerText = labelObj.name;
-
-      // On click => create new GT block at current video time
-      button.addEventListener('click', () => {
-        createBlock(labelObj);
-      });
-
-      labelList.appendChild(button);
-    }
-  });
-}
-
-// Make sure to inject the modal HTML into the body
-document.addEventListener('DOMContentLoaded', () => {
-  fetch('/static/label-name-modal.html')
-    .then(response => response.text())
-    .then(html => {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = html;
-      document.body.appendChild(tempDiv.firstChild);
-    });
-});
-
-
 function getRandomColor() {
   const letters = '0123456789ABCDEF';
   let color = '#';
@@ -460,26 +374,34 @@ function getRandomColor() {
   return color;
 }
 
-// addLabelButton.addEventListener('click', () => {
-//   const labelName = `Label ${labelCounter++}`;
-//   const color = getRandomColor();
-//   const labelId = Date.now() + '-' + Math.random();
-//   const labelObj = { id: labelId, name: labelName, color };
+addLabelButton.addEventListener('click', () => {
+  const labelName = prompt('Enter a name for the new label:', `Label ${labelCounter}`);
+  
+  if (labelName === null) return; // User canceled
+  
+  const color = getRandomColor();
+  const labelId = Date.now() + '-' + Math.random();
+  const labelObj = { id: labelId, name: labelName, color };
 
-//   labels.push(labelObj);
+  labels.push(labelObj);
 
-//   const button = document.createElement('button');
-//   button.classList.add('label-button');
-//   button.style.backgroundColor = color;
-//   button.innerText = labelName;
+  const button = document.createElement('button');
+  button.classList.add('label-button');
+  button.style.backgroundColor = color;
+  button.innerText = labelName;
 
-//   // On click => create new GT block at current video time
-//   button.addEventListener('click', () => {
-//     createBlock(labelObj);
-//   });
+  // On click => create new GT block at current video time
+  button.addEventListener('click', () => {
+    createBlock(labelObj);
+  });
 
-//   labelList.appendChild(button);
-// });
+  labelList.appendChild(button);
+  
+  // Increment label counter only if default name wasn't changed
+  if (labelName === `Label ${labelCounter}`) {
+    labelCounter++;
+  }
+});
 
 /********************************************************************
  * TRAIN & PREDICT => GET PREDICTIONS => CHUNK => RENDER
@@ -526,28 +448,36 @@ finishButton.addEventListener('click', () => {
 /********************************************************************
  * CHUNK + RENDER
  ********************************************************************/
+/**
+ * chunkAndRenderPredictions(predList)
+ *
+ * Splits predictions into AI vs Ci:
+ * - AI timeline still chunked (like before).
+ * - Ci timeline now uses per-pixel coloring via renderCiPixelwise().
+ */
 function chunkAndRenderPredictions(predList) {
-  // separate AI vs Ci
-  predList.sort((a,b) => {
-    if (a.source < b.source) return -1;
-    if (a.source > b.source) return 1;
-    return a.frame_number - b.frame_number;
-  });
-
-  const aiFrames = [];
-  const ciFrames = [];
-
-  for (const p of predList) {
-    if (p.source === 'AI') aiFrames.push(p);
-    else if (p.source === 'Ci') ciFrames.push(p);
+    // Sort predictions by source => frame_number
+    predList.sort((a, b) => {
+      if (a.source < b.source) return -1;
+      if (a.source > b.source) return 1;
+      return a.frame_number - b.frame_number;
+    });
+  
+    // Separate AI vs Ci frames
+    const aiFrames = [];
+    const ciFrames = [];
+    for (const p of predList) {
+      if (p.source === 'AI') aiFrames.push(p);
+      else if (p.source === 'Ci') ciFrames.push(p);
+    }
+  
+    // AI: same chunking logic as before
+    const aiChunks = chunkConsecutive(aiFrames, 60);
+    renderAIChunks(aiChunks);
+  
+    // Ci: per-pixel coloring, ignoring chunk logic
+    renderCiPixelwise(ciFrames);
   }
-
-  const aiChunks = chunkConsecutive(aiFrames, 60);
-  const ciChunks = chunkConsecutive(ciFrames, 60);
-
-  renderAIChunks(aiChunks);
-  renderCiChunks(ciChunks);
-}
 
 /**
  * chunkConsecutive => array of {start, end, label, avgConfidence}
@@ -601,6 +531,67 @@ function chunkConsecutive(frames, minSize) {
   }
   return result;
 }
+
+/**
+ * renderCiPixelwise(ciFrames)
+ *
+ * Instead of chunking consecutive frames, we color each pixel
+ * based on its corresponding frame’s label/confidence.
+ * 
+ * Steps:
+ * 1) Create a quick lookup: frame_number -> {label, confidence}.
+ * 2) For each pixel x in ciTimeline’s width, map x => frame.
+ * 3) If a prediction exists for that frame, color that pixel.
+ *    Confidence => color from red(0) to green(1).
+ */
+function renderCiPixelwise(ciFrames) {
+    ciTimeline.innerHTML = '';
+    ciBlocks = []; // reset or reuse as needed
+  
+    // Build a map: frame_number => { label, confidence }
+    const ciMap = {};
+    for (const p of ciFrames) {
+      ciMap[p.frame_number] = p;
+    }
+  
+    // Get total frames and timeline pixel width
+    const totalFrames = video.duration * FPS;
+    const width = ciTimeline.offsetWidth;
+  
+    // Iterate over each pixel of the Ci timeline
+    for (let x = 0; x < width; x++) {
+      // Convert x => frame
+      const frame = Math.floor((x / width) * totalFrames);
+  
+      // Lookup that frame in ciMap
+      const pred = ciMap[frame];
+      if (!pred) {
+        // No data => skip or color black if you prefer
+        continue;
+      }
+  
+      // Convert confidence to color (red->green)
+      const [r, g, b] = confidenceToRGB(pred.confidence);
+  
+      // Make a 1px-wide block
+      const blockEl = document.createElement('div');
+      blockEl.classList.add('timeline-block');
+      blockEl.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+      blockEl.style.left = x + 'px';
+      blockEl.style.width = '1px';
+  
+      ciTimeline.appendChild(blockEl);
+  
+      // Optionally track each pixel-block in ciBlocks, if desired
+      ciBlocks.push({
+        labelName: pred.label,
+        startPx: x,
+        widthPx: 1,
+        avgConf: pred.confidence,
+        element: blockEl
+      });
+    }
+  }
 
 /********************************************************************
  * RENDER AI / CI

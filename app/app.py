@@ -11,6 +11,8 @@ from config import config
 from dotenv import load_dotenv
 from src import labeler
 from src import model as modelfunc
+from src.model import save_model, load_model
+from pprint import pprint
 
 load_dotenv('.env')
 
@@ -41,7 +43,7 @@ def training():
     global df
     df = labeler.frame_index(settings['video_path'], df)
     if request.method == 'GET':
-        print(settings['video_path'])
+        print(settings)
         return render_template('training.html', video_src=f'/uploads/{Path(settings['video_path']).name}')
     elif request.method == 'POST':
         return process_blocks()
@@ -63,8 +65,13 @@ def predict():
 
 @app.route('/download_model', methods=['GET'])
 def download_model():
-    # Empty route for you to implement the download functionality
-    pass
+    try:
+        save_model(model, label_mapping, settings, stored_sequences)
+        flash('Model saved succesfuly as model.zip')
+    except Exception as e:
+        flash('Could not save model')
+        print(f'model save failed: {e}')
+    return render_template('predict_continue.html', show_model_upload=False)
 
 @app.route('/process_blocks', methods=['POST'])
 def process_blocks():
@@ -80,54 +87,71 @@ def process_blocks():
 
     data = request.json
     blocks = data.get("blocks", [])
+    # blocks = [{'label': 'walking', 'frame_start': 0, 'frame_end': 2640}, {'label': 'left', 'frame_start': 2820, 'frame_end': 3255}, {'label': 'rechtdoor', 'frame_start': 3255, 'frame_end': 4830}, {'label': 'right', 'frame_start': 4830, 'frame_end': 5160}, {'label': 'rechtdoor', 'frame_start': 8099, 'frame_end': 12735}, {'label': 'stopping', 'frame_start': 12735, 'frame_end': 13110}, {'label': 'standing', 'frame_start': 13110, 'frame_end': 13800}, {'label': 'right', 'frame_start': 18780, 'frame_end': 19035}]
     epochs = data.get("epochs", 5)
     settings['epochs'] = epochs
-
-    results = modelfunc.run_model(blocks, settings,model=model, unlabeled_df=df, label_mapping=label_mapping, stored_sequences=stored_sequences)
+    pprint(df.head(10)) # test
+    results = modelfunc.run_model(blocks, settings, model=model, unlabeled_df=df, label_mapping=label_mapping, stored_sequences=stored_sequences)
     result_list, settings, model, prediction_df, label_mapping, df, padded_sequences, padded_labels = results
-    print(len(result_list), result_list)
+    print(len(result_list))
 
     print('Received blocks from GT:', blocks)
     print('Requested epochs:', epochs)
 
     # same label intervals for AI vs Ci => chunk boundaries match
+
+
     predictions = []
 
-    # AI data
-    for f in range(1, 601):
-        conf = random.uniform(0.4, 0.8)
+    for result in result_list:
         predictions.append({
-            "frame_number": f,
-            "label": "Label1",
-            "confidence": conf,
-            "source": "AI"
+            "frame_number": result['frame_number'],
+            "label": result['label'],
+            "confidence": result['confidence'],
+            "source": 'AI',
         })
-    for f in range(601, 1001):
-        conf = random.uniform(0.2, 0.6)
         predictions.append({
-            "frame_number": f,
-            "label": "Label2",
-            "confidence": conf,
-            "source": "AI"
+            "frame_number": result['frame_number'],
+            "label": result['label'],
+            "confidence": result['confidence'],
+            "source": 'Ci',
         })
 
-    # Ci data
-    for f in range(1, 601):
-        conf = random.uniform(0.7, 1.0)
-        predictions.append({
-            "frame_number": f,
-            "label": "Label1",
-            "confidence": conf,
-            "source": "Ci"
-        })
-    for f in range(601, 1001):
-        conf = random.uniform(0.3, 0.7)
-        predictions.append({
-            "frame_number": f,
-            "label": "Label2",
-            "confidence": conf,
-            "source": "Ci"
-        })
+    # # AI data
+    # for f in range(1, 601):
+    #     conf = random.uniform(0.4, 0.8)
+    #     predictions.append({
+    #         "frame_number": f,
+    #         "label": "Label1",
+    #         "confidence": conf,
+    #         "source": "AI"
+    #     })
+    # for f in range(601, 1001):
+    #     conf = random.uniform(0.2, 0.6)
+    #     predictions.append({
+    #         "frame_number": f,
+    #         "label": "Label2",
+    #         "confidence": conf,
+    #         "source": "AI"
+    #     })
+
+    # # Ci data
+    # for f in range(1, 601):
+    #     conf = random.uniform(0.7, 1.0)
+    #     predictions.append({
+    #         "frame_number": f,
+    #         "label": "Label1",
+    #         "confidence": conf,
+    #         "source": "Ci"
+    #     })
+    # for f in range(601, 1001):
+    #     conf = random.uniform(0.3, 0.7)
+    #     predictions.append({
+    #         "frame_number": f,
+    #         "label": "Label2",
+    #         "confidence": conf,
+    #         "source": "Ci"
+    #     })
 
     return jsonify({
         "status": "success",
@@ -145,17 +169,17 @@ def handle_upload():
 
     # Get form data
     settings = {
-        'overlap': request.form.get('overlap', 0.50),
-        'length': request.form.get('length', 10),
-        'batch_size': request.form.get('batch_size', 16),
-        'dropout': request.form.get('dropout', 0.2),
-        'LSTM_units': request.form.get('LSTM_units', 256),
-        'learning_rate': request.form.get('learning_rate', 0.001),
+        'overlap': float(request.form.get('overlap', 0.50)),
+        'length': int(request.form.get('length', 10)),
+        'batch_size': int(request.form.get('batch_size', 8)),
+        'dropout': float(request.form.get('dropout', 0.2)),
+        'LSTM_units': int(request.form.get('LSTM_units', 256)),
+        'learning_rate': float(request.form.get('learning_rate', 0.0001)),
         "epochs": 5,
-        "dense_activation": "sigmoid",
+        "dense_activation": "softmax",
         "LSTM_activation": "tanh",
         "optimizer": "adam",
-        "loss": "binary_crossentropy",
+        "loss": "categorical_crossentropy",
         "metrics": ["accuracy"],
         "from_scratch": True,
         'target_sequence_length': None,
@@ -225,10 +249,22 @@ def upload_files():
     action = request.form.get('action')
 
     if model_file and model_file.filename:
+        global model
+        global label_mapping
+        global settings
+        global stored_sequences
+
         app.config['UPLOAD_FOLDER']
         model_path = app.config['UPLOAD_FOLDER'] / model_file.filename
         model_file.save(model_path)
         settings['model_path'] = str(model_path)
+        try:
+            model, label_mapping, settings, stored_sequences = load_model(str(model_path))
+        except Exception as e:
+            flash(Error with uploaded zip)
+            print(e)
+            return redirect(url_for('predict_continue'))
+
     
     if video_file and video_file.filename:
         app.config['UPLOAD_FOLDER']
@@ -281,10 +317,8 @@ def upload_files():
             return redirect(url_for('predict_cont_no_show'))
 
     if action == 'predict':
-        # Handle prediction logic
         return redirect(url_for('predict'))
     elif action == 'continue_training':
-        # Handle continue training logic
         return redirect(url_for('training'))
     
     if should_reroute:
