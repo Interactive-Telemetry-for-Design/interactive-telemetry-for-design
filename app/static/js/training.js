@@ -365,6 +365,92 @@ function createBlock(label) {
 /********************************************************************
  * LABELS
  ********************************************************************/
+/********************************************************************
+ * LABEL NAMING MODAL
+ ********************************************************************/
+const labelNameModal = document.getElementById('labelNameModal');
+const labelNameInput = document.getElementById('labelNameInput');
+const confirmLabelName = document.getElementById('confirmLabelName');
+const cancelLabelName = document.getElementById('cancelLabelName');
+
+let pendingLabelColor = '';
+let pendingLabelResolve = null;
+
+function openLabelNameModal() {
+  labelNameModal.style.display = 'block';
+  labelNameInput.value = '';
+  labelNameInput.focus();
+}
+
+function closeLabelNameModal() {
+  labelNameModal.style.display = 'none';
+}
+
+confirmLabelName.addEventListener('click', () => {
+  const labelName = labelNameInput.value.trim() || `Label ${labelCounter}`;
+  
+  if (pendingLabelResolve) {
+    pendingLabelResolve({
+      id: Date.now() + '-' + Math.random(),
+      name: labelName,
+      color: pendingLabelColor
+    });
+    pendingLabelResolve = null;
+  }
+  
+  closeLabelNameModal();
+});
+
+cancelLabelName.addEventListener('click', () => {
+  closeLabelNameModal();
+  if (pendingLabelResolve) {
+    pendingLabelResolve(null);
+    pendingLabelResolve = null;
+  }
+});
+
+// Modify addLabelButton event listener to use modal
+addLabelButton.addEventListener('click', () => {
+  createLabelWithModal();
+});
+
+function createLabelWithModal() {
+  return new Promise((resolve) => {
+    pendingLabelColor = getRandomColor();
+    pendingLabelResolve = resolve;
+    openLabelNameModal();
+  }).then((labelObj) => {
+    if (labelObj) {
+      labels.push(labelObj);
+      labelCounter++;
+
+      const button = document.createElement('button');
+      button.classList.add('label-button');
+      button.style.backgroundColor = labelObj.color;
+      button.innerText = labelObj.name;
+
+      // On click => create new GT block at current video time
+      button.addEventListener('click', () => {
+        createBlock(labelObj);
+      });
+
+      labelList.appendChild(button);
+    }
+  });
+}
+
+// Make sure to inject the modal HTML into the body
+document.addEventListener('DOMContentLoaded', () => {
+  fetch('/static/label-name-modal.html')
+    .then(response => response.text())
+    .then(html => {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      document.body.appendChild(tempDiv.firstChild);
+    });
+});
+
+
 function getRandomColor() {
   const letters = '0123456789ABCDEF';
   let color = '#';
@@ -374,26 +460,26 @@ function getRandomColor() {
   return color;
 }
 
-addLabelButton.addEventListener('click', () => {
-  const labelName = `Label ${labelCounter++}`;
-  const color = getRandomColor();
-  const labelId = Date.now() + '-' + Math.random();
-  const labelObj = { id: labelId, name: labelName, color };
+// addLabelButton.addEventListener('click', () => {
+//   const labelName = `Label ${labelCounter++}`;
+//   const color = getRandomColor();
+//   const labelId = Date.now() + '-' + Math.random();
+//   const labelObj = { id: labelId, name: labelName, color };
 
-  labels.push(labelObj);
+//   labels.push(labelObj);
 
-  const button = document.createElement('button');
-  button.classList.add('label-button');
-  button.style.backgroundColor = color;
-  button.innerText = labelName;
+//   const button = document.createElement('button');
+//   button.classList.add('label-button');
+//   button.style.backgroundColor = color;
+//   button.innerText = labelName;
 
-  // On click => create new GT block at current video time
-  button.addEventListener('click', () => {
-    createBlock(labelObj);
-  });
+//   // On click => create new GT block at current video time
+//   button.addEventListener('click', () => {
+//     createBlock(labelObj);
+//   });
 
-  labelList.appendChild(button);
-});
+//   labelList.appendChild(button);
+// });
 
 /********************************************************************
  * TRAIN & PREDICT => GET PREDICTIONS => CHUNK => RENDER

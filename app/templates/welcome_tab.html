@@ -124,23 +124,25 @@
             <div class="center-container">
                 <button type="button" id="advanced-settings-btn" class="small-button" onclick="showPopup()">Advanced Settings</button>
                 <div id="settings-fields" style="display: none;">
-                    <label for="a1">Field A1:</label>
-                    <input type="number" id="a1" name="a1" value="3"><br>
-                    <label for="a2">Field A2:</label>
-                    <input type="number" id="a2" name="a2" value="3"><br>
-                    <label for="a3">Field A3:</label>
-                    <input type="number" id="a3" name="a3" value="3"><br>
-                    <label for="a4">Field A4:</label>
-                    <input type="number" id="a4" name="a4" value="3"><br>
-                    <label for="a5">Field A5:</label>
-                    <input type="number" id="a5" name="a5" value="3"><br><br>
+                    <label for="overlap">Field overlap:</label>
+                    <input type="number" id="overlap" name="overlap" value="0.50"><br>
+                    <label for="length">Field length:</label>
+                    <input type="number" id="length" name="length" value="10"><br>
+                    <label for="batch_size">Field batch_size:</label>
+                    <input type="number" id="batch_size" name="batch_size" value="16"><br>
+                    <label for="dropout">Field dropout:</label>
+                    <input type="number" id="dropout" name="dropout" value="0.2"><br>
+                    <label for="LSTM_units">Field LSTM units:</label>
+                    <input type="number" id="LSTM_units" name="LSTM_units" value="256"><br>
+                    <label for="learning_rate">Field learning rate:</label>
+                    <input type="number" id="learning_rate" name="learning_rate" value="0.001"><br><br>
                     <button type="button" class="small-button" onclick="retractSettings()">Retract Settings</button>
                 </div>
             </div>
 
             <!-- Popup -->
             <div id="popup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border: 1px solid black; padding: 20px; z-index: 1000;">
-                <p>WARNING: These settings have been tuned using validation datasets, changing the settings might result in a less effective model.</p>
+                <p>WARNING: These settings have been tuned on validation sets, changing the settings might result in a less effective model. When editting these look into the readme for the possible ranges.</p>
                 <button type="button" onclick="confirmPopup()">Acknowledge</button>
             </div>
 
