@@ -16,13 +16,13 @@ body {
     display: flex;
     justify-content: space-between;  /* Space between logo and nav links */
     align-items: center;
-    background-color: #1e1e1e;
+    background-color: darkslategrey;
     padding: 20px 50px;
 }
 
 /* Logo styling */
 .logo a {
-    color: #ff6a00;
+    color: #f5f5f5;
     font-size: 1.8rem;
     font-weight: bold;
     text-decoration: none;
@@ -50,7 +50,7 @@ body {
 
 /* Hover effect */
 .nav-links a:hover {
-    color: #ff6a00;
+    color: rgb(223, 235, 223);
 }
 
 /* Responsive navigation for mobile screens */
@@ -86,7 +86,7 @@ body {
 /* Big Start Button */
 .start-button {
     display: inline-block;
-    background-color: #ff6a00;
+    background-color: darkslategrey;
     color: #fff;
     font-size: 2rem;
     font-weight: bold;
@@ -98,13 +98,13 @@ body {
 }
 
 .start-button:hover {
-    background-color: #e65c00;
+    background-color: darkseagreen;
     transform: scale(1.05);
 }
 
 .small-button {
     display: inline-block;
-    background-color: #ff6a00;
+    background-color: darkslategrey;
     color: #fff;
     font-size: 1rem; /* Slightly smaller font size */
     font-weight: bold;
@@ -116,7 +116,7 @@ body {
 }
 
 .small-button:hover {
-    background-color: #e65c00;
+    background-color: darkseagreen;
     transform: scale(1.05);
 }
 

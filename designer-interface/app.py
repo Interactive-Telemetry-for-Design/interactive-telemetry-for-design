@@ -58,73 +58,154 @@ def download_model():
     # Empty route for you to implement the download functionality
     pass
 
+@app.route('/upload_files', methods=['POST'])
+def upload_files():
+    global df
+    model_file = request.files.get('model_upload')
+    video_file = request.files.get('mp4_upload')
+    csv_file = request.files.get('csv_upload')
+    ik_haat_dit = False  # Used to decide to which page to reroute for showing model upload or not
+    if model_file:
+        ik_haat_dit = True
+    action = request.form.get('action')
+
+    file_paths = {}
+
+    if model_file and model_file.filename:
+        app.config['UPLOAD_FOLDER']
+        model_path = app.config['UPLOAD_FOLDER'] / model_file.filename
+        model_file.save(model_path)
+        file_paths['model_path'] = str(model_path)
+    
+    if video_file and video_file.filename:
+        app.config['UPLOAD_FOLDER']
+        mp4_path = app.config['UPLOAD_FOLDER'] / video_file.filename
+        video_file.save(mp4_path)
+        file_paths['mp4_path'] = str(mp4_path)
+        
+    if csv_file and csv_file.filename:
+        if not video_file:
+            flash('Error: MP4 file is required when uploading a CSV.')
+            if ik_haat_dit:
+                return redirect(url_for('predict_continue'))
+            return redirect(url_for('predict_cont_no_show'))
+        csv_path = app.config['UPLOAD_FOLDER'] / csv_file.filename
+        csv_file.save(csv_path)
+        file_paths['csv_path'] = str(csv_path)
+
+    if 'mp4_path' in file_paths and 'csv_path' in file_paths:
+        try:
+            df_t = pd.read_csv(file_paths['csv_path'])
+        except Exception as e:
+            print(f"Error while reading CSV: {e}")
+            flash("An error occurred while reading the CSV file.")
+            if ik_haat_dit:
+                return redirect(url_for('predict_continue'))
+            return redirect(url_for('predict_cont_no_show'))
+    
+        required_columns = ["TIMESTAMP", "ACCL_x", "ACCL_y", "ACCL_z", "GYRO_x", "GYRO_y", "GYRO_z"]
+
+        # Create a new DataFrame with only the required columns in the specified order
+        df_t2 = pd.DataFrame({col: df_t[col] for col in required_columns if col in df_t.columns})
+
+        # Check if any required columns are missing
+        if list(df_t2.columns) != required_columns:
+            flash("CSV file does not have the required columns (Capital sensitive): TIMESTAMP, ACCL_x, ACCL_y, ACCL_z, GYRO_x, GYRO_y, GYRO_z", "error")
+            if ik_haat_dit:
+                return redirect(url_for('predict_continue'))
+            return redirect(url_for('predict_cont_no_show'))
+        df = df_t2
+
+    # If 'mp4_path' is present, run the extract method
+    if 'mp4_path' in file_paths and not 'csv_path' in file_paths:
+        try:
+            df = extract_imu_data(file_paths['mp4_path'])
+        except Exception as e:
+            print(f"Error while reading extracting IMU data: {e}")
+            flash("An error occurred while trying to extract the IMU data.")
+            if ik_haat_dit:
+                return redirect(url_for('predict_continue'))
+            return redirect(url_for('predict_cont_no_show'))
+
+    if action == 'predict':
+        # Handle prediction logic
+        return redirect(url_for('predict'))
+    elif action == 'continue_training':
+        # Handle continue training logic
+        return redirect(url_for('training'))
+    
+    if ik_haat_dit:
+        return redirect(url_for('predict_continue'))
+    return redirect(url_for('predict_cont_no_show'))
+
 @app.route('/data/uploads', methods=['POST'])
 def handle_upload():
     global df
     global settings
-    if request.method == 'POST':
-        # Handle file uploads
-        mp4_file = request.files.get('mp4-upload')
-        csv_file = request.files.get('CSV-upload')
-        # Get form data
-        settings = {
-            'a1': request.form.get('a1', 3),
-            'a2': request.form.get('a2', 3),
-            'a3': request.form.get('a3', 3),
-            'a4': request.form.get('a4', 3),
-            'a5': request.form.get('a5', 3)
-        }
-        
-        # Save files and get their paths
-        file_paths = {}
-        
-        if mp4_file and mp4_file.filename:
-            app.config['UPLOAD_FOLDER']
-            mp4_path = app.config['UPLOAD_FOLDER'] / mp4_file.filename
-            mp4_file.save(mp4_path)
-            file_paths['mp4_path'] = str(mp4_path)
-            
-            
-        if csv_file and csv_file.filename:
-            if not mp4_file and mp4_file.filename:
-                flash('Error: MP4 file is required when uploading a CSV.')
-                return redirect(url_for('upload_page'))
-            csv_path = app.config['UPLOAD_FOLDER'] / csv_file.filename
-            csv_file.save(csv_path)
-            file_paths['csv_path'] = str(csv_path)
 
-        if 'mp4_path' in file_paths and 'csv_path' in file_paths:
-            try:
-                df_t = pd.read_csv(file_paths['csv_path'])
-            except Exception as e:
-                print(f"Error while reading CSV: {e}")
-                flash("An error occurred while reading the CSV file.")
-                return redirect(url_for('upload_page'))
+    # Handle file uploads
+    mp4_file = request.files.get('mp4-upload')
+    csv_file = request.files.get('CSV-upload')
+    # Get form data
+    settings = {
+        'a1': request.form.get('a1', 3),
+        'a2': request.form.get('a2', 3),
+        'a3': request.form.get('a3', 3),
+        'a4': request.form.get('a4', 3),
+        'a5': request.form.get('a5', 3),
+        'target_sequence_length': None
+    }
+    
+    # Save files and get their paths
+    file_paths = {}
+    
+    if mp4_file and mp4_file.filename:
+        app.config['UPLOAD_FOLDER']
+        mp4_path = app.config['UPLOAD_FOLDER'] / mp4_file.filename
+        mp4_file.save(mp4_path)
+        file_paths['mp4_path'] = str(mp4_path)
         
-            required_columns = ["TIMESTAMP", "ACCL_x", "ACCL_y", "ACCL_z", "GYRO_x", "GYRO_y", "GYRO_z"]
+        
+    if csv_file and csv_file.filename:
+        if not mp4_file:
+            flash('Error: MP4 file is required when uploading a CSV.')
+            return redirect(url_for('upload_page'))
+        csv_path = app.config['UPLOAD_FOLDER'] / csv_file.filename
+        csv_file.save(csv_path)
+        file_paths['csv_path'] = str(csv_path)
 
-            # Create a new DataFrame with only the required columns in the specified order
-            df_t2 = pd.DataFrame({col: df_t[col] for col in required_columns if col in df_t.columns})
+    if 'mp4_path' in file_paths and 'csv_path' in file_paths:
+        try:
+            df_t = pd.read_csv(file_paths['csv_path'])
+        except Exception as e:
+            print(f"Error while reading CSV: {e}")
+            flash("An error occurred while reading the CSV file.")
+            return redirect(url_for('upload_page'))
+    
+        required_columns = ["TIMESTAMP", "ACCL_x", "ACCL_y", "ACCL_z", "GYRO_x", "GYRO_y", "GYRO_z"]
 
-            # Check if any required columns are missing
-            if list(df_t2.columns) != required_columns:
-                flash("CSV file does not have the required columns (Capital sensitive): TIMESTAMP, ACCL_x, ACCL_y, ACCL_z, GYRO_x, GYRO_y, GYRO_z", "error")
-                return redirect(url_for('upload_page'))
-            df = df_t2
+        # Create a new DataFrame with only the required columns in the specified order
+        df_t2 = pd.DataFrame({col: df_t[col] for col in required_columns if col in df_t.columns})
+
+        # Check if any required columns are missing
+        if list(df_t2.columns) != required_columns:
+            flash("CSV file does not have the required columns (Capital sensitive): TIMESTAMP, ACCL_x, ACCL_y, ACCL_z, GYRO_x, GYRO_y, GYRO_z", "error")
+            return redirect(url_for('upload_page'))
+        df = df_t2
+        return redirect(url_for('test'))
+
+    # If 'mp4_path' is present, run the extract method
+    if 'mp4_path' in file_paths and not 'csv_path' in file_paths:
+        try:
+            df = extract_imu_data(file_paths['mp4_path'])
             return redirect(url_for('test'))
-
-        # If 'mp4_path' is present, run the extract method
-        if 'mp4_path' in file_paths and not 'csv_path' in file_paths:
-            try:
-                df = extract_imu_data(file_paths['mp4_path'])
-                return redirect(url_for('test'))
-            except Exception as e:
-                print(f"Error while reading extracting IMU data: {e}")
-                flash("An error occurred while trying to extract the IMU data.")
-                return redirect(url_for('upload_page'))
-            
-        flash("You need to upload something")
-        return redirect(url_for('upload_page'))
+        except Exception as e:
+            print(f"Error while reading extracting IMU data: {e}")
+            flash("An error occurred while trying to extract the IMU data.")
+            return redirect(url_for('upload_page'))
+        
+    flash("You need to upload something")
+    return redirect(url_for('upload_page'))
 
 
 @app.route('/plot')
