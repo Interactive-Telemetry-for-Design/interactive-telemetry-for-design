@@ -30,21 +30,16 @@ settings = None
 file_paths = None
 
 
-
-
-# TODO:
-df = pd.read_csv(config.DATA_DIR / 'GoPro_test.csv')
-file_paths = {
-    'mp4_path': config.DATA_DIR / 'nextcloud' / 'Fiets' / 'GH040043.MP4',
-}
-df = labeler.frame_index(file_paths['video_path'], df)
-
 @app.route('/')
 def upload_page():
     return render_template('welcome_tab.html')
 
 @app.route('/training', methods=['GET', 'POST'])
 def training():
+    global df
+
+    df = labeler.frame_index(file_paths['mp4_path'], df)
+
     if request.method == 'GET':
         return render_template('training.html', video_src=f'/uploads/{Path(file_paths['mp4_path']).name}')
     elif request.method == 'POST':

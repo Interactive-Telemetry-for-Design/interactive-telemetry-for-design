@@ -122,17 +122,6 @@
         <button id="create-new-btn" class="start-button" onclick="goToDataUpload()">Create New Model</button>
     </div>
 
-    <div class="info-section">
-        <h3>Guidelines for Use:</h3>
-        <p>
-            <strong>Quantitative Analysis:</strong> Use this for tasks like stability testing and accelerated, but less precise, iterative design.
-        </p>
-        <p>
-            <strong>Qualitative Analysis:</strong> Avoid using this for tasks where you need subjective feedback, such as asking, 
-            "Do you prefer this prototype over this product?" or "Would you use this product in your daily life and why or why not?"
-        </p>
-    </div>
-
     <!-- Main content div that will be initially hidden -->
     <div id="main-content">
         <form method="POST" action="{{ url_for('handle_upload') }}" enctype="multipart/form-data" id="upload-form">
@@ -190,6 +179,16 @@
         </form>
     </div>
 
+    <div class="info-section">
+        <h3>Guidelines for Use:</h3>
+        <p>
+            <strong>Quantitative Analysis:</strong> Use this for tasks like stability testing and accelerated, but less precise, iterative design.
+        </p>
+        <p>
+            <strong>Qualitative Analysis:</strong> Avoid using this for tasks where you need subjective feedback, such as asking, 
+            "Do you prefer this prototype over this product?" or "Would you use this product in your daily life and why or why not?"
+        </p>
+    </div>
     <script>
         // Function to go to data upload page
         function goToDataUpload() {
