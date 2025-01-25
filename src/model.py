@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 tf.compat.v1.enable_eager_execution()
+tf.config.run_functions_eagerly(True)
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import LSTM, Dense, TimeDistributed, Dropout
 from tensorflow.keras import mixed_precision
@@ -11,6 +12,7 @@ import src.sequencing as sequencing
 import os
 import zipfile
 from pprint import pprint
+import copy
 
 mixed_precision.set_global_policy("mixed_float16")
 
@@ -186,15 +188,6 @@ def predict(model, sequences, label_mapping):
     # Combine sequences, predicted labels, and confidence scores into a DataFrame
     prediction_data = sequencing.combine_and_restitch_sequences(sequences, predicted_labels, confidence_scores)
     prediction_df = pd.DataFrame(prediction_data, columns=['TIMESTAMP', 'ACCL_x', 'ACCL_y', 'ACCL_z', 'GYRO_x', 'GYRO_y', 'GYRO_z', 'FRAME_INDEX', 'LABEL', 'CONFIDENCE']).astype({'CONFIDENCE': np.float64})
-    
-    prediction_df.to_csv("prediction_df.csv")
-
-    # result = prediction_df.groupby('FRAME_INDEX').apply(
-    #     lambda x: pd.Series({
-    #         'average_prediction': most_frequent_label(x['LABEL'].values, label_mapping),
-    #         'average_confidence': x['CONFIDENCE'].mean()
-    #     }, dtype=object)
-    # ).reset_index()
 
     result_list = []
 
@@ -212,10 +205,12 @@ def predict(model, sequences, label_mapping):
 def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_mapping={}, stored_sequences=None):
     # check if labels are the same
     unique_labels = sorted(set(item["label"] for item in labeled_frames))
-    current_labels = sorted(label_mapping.keys())
-    if unique_labels != current_labels:
+    if not set(unique_labels).issubset(set(label_mapping.keys())):
         settings["from_scratch"] = True
-        label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
+        for label in unique_labels:
+            if label not in label_mapping:
+                label_mapping[label] = len(label_mapping)
+
     n_labels = len(label_mapping)
     
     # label datapoints
@@ -228,22 +223,31 @@ def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_map
         end_frame = item["frame_end"]
         
         df.loc[(df["FRAME_INDEX"] >= start_frame) & (df["FRAME_INDEX"] <= end_frame), "LABEL"] = label
-
+    
     # convert df using tf.one_hot
-    df = label_vectorize(df, label_mapping, unique_labels)
+    df = label_vectorize(df, label_mapping, label_mapping.keys())
     # pprint(df.head(10)) # test
     # make sequences from df
     sequences = sequencing.create_sequence(df, settings["overlap"], settings["length"], target_sequence_length=settings["target_sequence_length"])
+    print(f'sequencing shape: {sequences.shape}')
     settings["target_sequence_length"] = sequences.shape[1]
 
-    padded_sequences, padded_labels = sequencing.get_filtered_sequences_and_labels(sequences)
+    padded_sequences, padded_labels = sequencing.get_filtered_sequences_and_labels(copy.deepcopy(sequences))
+    print(padded_sequences.shape)
+    print(padded_labels.shape)
+    if stored_sequences != None:
+        print(stored_sequences.shape)
     all_sequences = sequencing.save_used_data(padded_sequences, padded_labels, stored_sequences)
+    print(all_sequences.shape)
     train_sequences, train_labels = all_sequences[:,:,0:6], all_sequences[:,:,6:]
 
     sample_weights = np.array([
         [1 if np.any(timestep != 0) else 0 for timestep in sequence]
         for sequence in train_sequences
     ])
+
+    print(f'{train_sequences.shape=}')
+    print(f'{train_labels.shape=}')
     
     # build model
     if settings["from_scratch"] == True:
@@ -279,7 +283,7 @@ def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_map
     return result_list, settings, model, prediction_df, label_mapping, unlabeled_df, padded_sequences, padded_labels
 
 
-def model_predict(settings, model, label_mapping):
+def model_predict(df, settings, model, label_mapping):
     n_labels = len(label_mapping)
 
     sequences = sequencing.create_sequence(df, settings["overlap"], settings["length"])
@@ -292,6 +296,8 @@ def model_predict(settings, model, label_mapping):
 
 def model_done(padded_sequences, padded_labels, stored_sequences):
     stored_sequences = sequencing.save_used_data(padded_sequences, padded_labels, stored_sequences)
+    # pprint(stored_sequences)
+    pprint(stored_sequences.shape)
     return stored_sequences
 
 
@@ -325,7 +331,11 @@ def load_model(file_path="models/model.zip"):
         zipf.extractall()
     
     # Load model and other components
-    model = tf.keras.models.load_model("model.h5")
+    model = tf.keras.models.load_model("model.h5", compile=False)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001, decay=None)
+    model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"])
+    model.summary()
+
     with open("label_mapping.pkl", "rb") as f:
         label_mapping = pickle.load(f)
     with open("settings.pkl", "rb") as f:

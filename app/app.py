@@ -32,7 +32,6 @@ df = None
 settings = {}
 stored_sequences = None
 model = None
-stored_sequences = None
 label_mapping = {}
 prediction_df = None
 padded_sequences = None
@@ -46,6 +45,7 @@ def upload_page():
 def training():
     global df
     df = labeler.frame_index(settings['video_path'], df)
+    print('executing labeler.frame_index...')
     is_retraining = request.form.get('is_retraining', False)
 
     if request.method == 'GET':
@@ -61,12 +61,18 @@ def predict_continue():
 
 @app.route('/alternative_continue', methods=['GET'])
 def predict_cont_no_show():
+    return render_template('predict_continue.html', show_model_upload=False)
+
+@app.route('/finish_training', methods=['GET'])
+def finish_training():
     global stored_sequences
     stored_sequences = model_done(padded_sequences, padded_labels, stored_sequences)
     return render_template('predict_continue.html', show_model_upload=False)
 
 @app.route('/predict', methods=['GET'])
 def predict():
+    global df
+    
     df = labeler.frame_index(settings['video_path'], df)
     return render_template('predict.html', video_src=f'/uploads/{Path(settings['video_path']).name}')
 
@@ -76,6 +82,7 @@ def download_model():
         save_model(model, label_mapping, settings, stored_sequences)
         flash('Model saved succesfuly as model.zip in the models folder of the project')
         # download to browser
+        print(stored_sequences.shape)
         return send_from_directory(config.MODELS_DIR, 'model.zip', as_attachment=True, download_name='model.zip')
     except Exception as e:
         flash('Could not save model')
@@ -99,6 +106,9 @@ def process_blocks():
     blocks = data.get("blocks", [])
     epochs = data.get("epochs", 5)
     settings['epochs'] = epochs
+    # print(settings)
+    # print('model:')
+    # print(model)
     results = modelfunc.run_model(blocks, settings, model=model, unlabeled_df=df, label_mapping=label_mapping, stored_sequences=stored_sequences)
     result_list, settings, model, prediction_df, label_mapping, df, padded_sequences, padded_labels = results
 
@@ -129,6 +139,7 @@ def process_blocks():
         "predictions": predictions
     })
 
+# For welcome_tab.html
 @app.route('/data/uploads', methods=['POST'])
 def handle_upload():
     global df
@@ -210,7 +221,7 @@ def handle_upload():
     flash("You need to upload something")
     return redirect(url_for('upload_page'))
 
-
+# For predict_continue.html
 @app.route('/upload_files', methods=['POST'])
 def upload_files():
     global df
@@ -237,8 +248,6 @@ def upload_files():
         settings['model_path'] = str(model_path)
         try:
             model, label_mapping, settings, stored_sequences = load_model(str(model_path))
-            print(stored_sequences)
-            print(type(stored_sequences))
         except Exception as e:
             flash('Error with uploaded zip')
             print(e)
@@ -325,7 +334,7 @@ def get_plot_data():
         return {"error": "Invalid input data"}, 400
     df_t = prediction_df.copy()
     if 'CONFIDENCE' not in df_t.columns:
-        df_t['CONFIDENCE'] = np.random.rand(len(df_t))
+        df_t['CONFIDENCE'] = np.ones(len(df_t))
         
     df_t = df_t.astype({  # Nobody set this would be fun
     'TIMESTAMP': 'float64',
@@ -341,8 +350,9 @@ def get_plot_data():
     })
 
     principal_df, mapping = prepare_data(df_t.copy(),ci, settings['stratify'])
+
     data = {
-    'x': principal_df[x_col].tolist(),
+        'x': principal_df[x_col].tolist(),
         'y': principal_df[y_col].tolist(),
         'frames': principal_df['TIMESTAMP'].tolist(),
         'colours': principal_df['COLOUR'].tolist(),
@@ -370,20 +380,14 @@ def get_labels():
 
 @app.route('/predict_blocks', methods=['POST'])
 def predict_blocks():
-    global stored_sequences
-    global label_mapping
-    global df
     global settings
     global prediction_df
-    global model
-    global padded_sequences
-    global padded_labels
 
 
     data = request.json
     epochs = data.get("epochs", 5)
     settings['epochs'] = epochs
-    results = modelfunc.model_predict(settings, model=model, label_mapping=label_mapping)
+    results = modelfunc.model_predict(df, settings, model=model, label_mapping=label_mapping)
     prediction_df, result_list = results
 
     # print('Requested epochs:', epochs)
