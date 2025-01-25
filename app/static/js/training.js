@@ -22,6 +22,8 @@ let activeBlockId = null;
 // Selected AI block
 let selectedAIBlockId = null;
 
+let colorIndex = -1;
+
 /********************************************************************
  * DOM REFERENCES
  ********************************************************************/
@@ -367,11 +369,27 @@ function createBlock(label) {
  ********************************************************************/
 function getRandomColor(index = null) {
   const palette = [
-    '#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', 
-    '#1abc9c', '#34495e', '#16a085', '#2980b9', '#27ae60', 
-    '#c0392b', '#d35400', '#8e44ad', '#f1c40f', '#e67e22', 
-    '#2c3e50', '#7f8c8d', '#bdc3c7', '#95a5a6', '#ecf0f1'
-  ];
+    '#FF0000',    // Bright Red (maximum contrast)
+    '#00FFFF',    // Cyan (highest contrast with red)
+    '#000000',    // Black 
+    '#FFFFFF',    // White
+    '#00FF00',    // Bright Green
+    '#0000FF',    // Blue
+    '#FFFF00',    // Yellow
+    '#FF00FF',    // Magenta
+    '#FFA500',    // Orange
+    '#800080',    // Purple
+    '#008000',    // Dark Green
+    '#FFC0CB',    // Pink
+    '#A52A2A',    // Brown
+    '#808080',    // Gray
+    '#4B0082',    // Indigo
+    '#40E0D0',    // Turquoise
+    '#FA8072',    // Salmon
+    '#708090',    // Slate Gray
+    '#D2691E',    // Chocolate
+    '#20B2AA'     // Light Sea Green
+];
   
   if (index !== null && index >= 0 && index < palette.length) {
     return palette[index];
@@ -384,7 +402,8 @@ addLabelButton.addEventListener('click', () => {
   
   if (labelName === null) return; // User canceled
   
-  const color = getRandomColor();
+  colorIndex++;
+  const color = getRandomColor(colorIndex);
   const labelId = Date.now() + '-' + Math.random();
   const labelObj = { id: labelId, name: labelName, color };
 

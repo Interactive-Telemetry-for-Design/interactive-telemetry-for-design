@@ -218,6 +218,7 @@ def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_map
         settings["from_scratch"] = True
         label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
     n_labels = len(label_mapping)
+    pprint(label_mapping)
     
     # label datapoints
     df = unlabeled_df.copy()
@@ -232,7 +233,7 @@ def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_map
 
     # convert df using tf.one_hot
     df = label_vectorize(df, label_mapping, unique_labels)
-
+    # pprint(df.head(10)) # test
     # make sequences from df
     sequences = sequencing.create_sequence(df, settings["overlap"], settings["length"], target_sequence_length=settings["target_sequence_length"])
     settings["target_sequence_length"] = sequences.shape[1]
@@ -307,7 +308,7 @@ def save_model(model, label_mapping, settings, stored_sequences, filename="model
         pickle.dump(stored_sequences, f)
     
     # Create a zip file containing all the components
-    with zipfile.ZipFile(filename, "w") as zipf:
+    with zipfile.ZipFile(config.MODELS_DIR /filename, "w") as zipf:
         zipf.write("model.h5")
         zipf.write("label_mapping.pkl")
         zipf.write("settings.pkl")
@@ -320,9 +321,9 @@ def save_model(model, label_mapping, settings, stored_sequences, filename="model
     os.remove("stored_sequences.pkl")
     return
 
-def load_model(filename="model.zip"):
+def load_model(file_path="models/model.zip"):
     # Extract the zip file
-    with zipfile.ZipFile(filename, "r") as zipf:
+    with zipfile.ZipFile(file_path, "r") as zipf:
         zipf.extractall()
     
     # Load model and other components

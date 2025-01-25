@@ -65,21 +65,21 @@ def predict_cont_no_show():
     model_done(padded_sequences, padded_labels, stored_sequences)
     return render_template('predict_continue.html', show_model_upload=False)
 
-
 @app.route('/predict', methods=['GET'])
 def predict():
-    return render_template('predict.html', video_src=f'/uploads/cut-GH010039-0.2.mp4')
-    # TODO:
-    return render_template('predict.html', video_src=f'/uploads/{Path(file_paths['mp4_path']).name}')
+    return render_template('predict.html', video_src=f'/uploads/{Path(settings['video_path']).name}')
 
 @app.route('/download_model', methods=['GET'])
 def download_model():
     try:
         save_model(model, label_mapping, settings, stored_sequences)
-        flash('Model saved succesfuly as model.zip')
+        flash('Model saved succesfuly as model.zip in the models folder of the project')
+        # download to browser
+        return send_from_directory(config.MODELS_DIR, 'model.zip', as_attachment=True, download_name='model.zip')
     except Exception as e:
         flash('Could not save model')
         print(f'model save failed: {e}')
+
     return render_template('predict_continue.html', show_model_upload=False)
 
 @app.route('/process_blocks', methods=['POST'])
@@ -98,6 +98,8 @@ def process_blocks():
     blocks = data.get("blocks", [])
     epochs = data.get("epochs", 5)
     settings['epochs'] = epochs
+    pprint(label_mapping)
+    pprint(blocks)
     results = modelfunc.run_model(blocks, settings, model=model, unlabeled_df=df, label_mapping=label_mapping, stored_sequences=stored_sequences)
     result_list, settings, model, prediction_df, label_mapping, df, padded_sequences, padded_labels = results
     print(len(result_list))
@@ -133,6 +135,7 @@ def process_blocks():
 def handle_upload():
     global df
     global settings
+    global prediction_df
 
     # Handle file uploads
     mp4_file = request.files.get('mp4-upload')
@@ -146,6 +149,7 @@ def handle_upload():
         'dropout': float(request.form.get('dropout', 0.2)),
         'LSTM_units': int(request.form.get('LSTM_units', 256)),
         'learning_rate': float(request.form.get('learning_rate', 0.0001)),
+        'stratify': float(request.form.get('stratify', 0.2)),
         "epochs": 5,
         "dense_activation": "softmax",
         "LSTM_activation": "tanh",
@@ -191,12 +195,14 @@ def handle_upload():
             flash("CSV file does not have the required columns (Capital sensitive): TIMESTAMP, ACCL_x, ACCL_y, ACCL_z, GYRO_x, GYRO_y, GYRO_z", "error")
             return redirect(url_for('upload_page'))
         df = df_t2
+        prediction_df = df
         return redirect(url_for('training'))
 
     # If 'mp4_path' is present, run the extract method
     if 'video_path' in settings and not 'imu_path' in settings:
         try:
             df = extract_imu_data(settings['video_path'])
+            prediction_df = df
             return redirect(url_for('training'))
         except Exception as e:
             print(f"Error while reading extracting IMU data: {e}")
@@ -210,6 +216,7 @@ def handle_upload():
 @app.route('/upload_files', methods=['POST'])
 def upload_files():
     global df
+    global prediction_df
     global settings
     global model
     global label_mapping
@@ -276,11 +283,13 @@ def upload_files():
                 return redirect(url_for('predict_continue'))
             return redirect(url_for('predict_cont_no_show'))
         df = df_t2
+        prediction_df = df
 
     # If 'mp4_path' is present, run the extract method
     if 'video_path' in settings and not 'imu_path' in settings:
         try:
             df = extract_imu_data(settings['video_path'])
+            prediction_df = df
         except Exception as e:
             print(f"Error while reading extracting IMU data: {e}")
             flash("An error occurred while trying to extract the IMU data.")
@@ -313,18 +322,15 @@ def get_plot_data():
         print("Error parsing request data:", str(e))
         return {"error": "Invalid input data"}, 400
     print(ci)
-    if 'CONFIDENCE' in df.columns:
-        principal_df, mapping = prepare_data(df.copy(), ci)
+    df_t = prediction_df.copy()
+    if 'CONFIDENCE' in df_t.columns:
+        principal_df, mapping = prepare_data(df_t, ci, settings['stratify'])
     else:
-        df['CONFIDENCE'] = np.random.rand(len(df))
-        principal_df, mapping = prepare_data(df.copy(),ci)
-
-    
-    
-
+        df_t['CONFIDENCE'] = np.random.rand(len(df_t))
+        principal_df, mapping = prepare_data(df_t.copy(),ci, settings['stratify'])
 
     data = {
-        'x': principal_df[x_col].tolist(),
+    'x': principal_df[x_col].tolist(),
         'y': principal_df[y_col].tolist(),
         'frames': principal_df['TIMESTAMP'].tolist(),
         'colours': principal_df['COLOUR'].tolist(),
