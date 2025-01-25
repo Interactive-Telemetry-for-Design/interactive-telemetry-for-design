@@ -9,6 +9,7 @@ from pathlib import Path
 import os
 from config import config
 from dotenv import load_dotenv
+from src import labeler
 
 load_dotenv('.env')
 
@@ -24,13 +25,19 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1000 * 1024 * 1024 # 50gb limit
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Test df
 df = None
+settings = None
+file_paths = None
+
+
+
 
 # TODO:
 df = pd.read_csv(config.DATA_DIR / 'GoPro_test.csv')
-settings = None
-file_paths = None
+file_paths = {
+    'mp4_path': config.DATA_DIR / 'nextcloud' / 'Fiets' / 'GH040043.MP4',
+}
+df = labeler.frame_index(file_paths['video_path'], df)
 
 @app.route('/')
 def upload_page():
@@ -39,7 +46,6 @@ def upload_page():
 @app.route('/training', methods=['GET', 'POST'])
 def training():
     if request.method == 'GET':
-        print(file_paths['mp4_path'])
         return render_template('training.html', video_src=f'/uploads/{Path(file_paths['mp4_path']).name}')
     elif request.method == 'POST':
         return process_blocks()

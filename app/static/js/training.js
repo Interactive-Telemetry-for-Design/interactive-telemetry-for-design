@@ -421,6 +421,7 @@ sendAnnotationsButton.addEventListener('click', () => {
     epochs: epochCount
   };
 
+  alert('Blocks + epochs sent to backend!');
   fetch('/process_blocks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -429,13 +430,16 @@ sendAnnotationsButton.addEventListener('click', () => {
   .then(r => r.json())
   .then(data => {
     console.log('Server response:', data);
-    alert('Blocks + epochs sent to backend!');
 
     if (data.predictions) {
       chunkAndRenderPredictions(data.predictions);
+      alert('Got predictions and confidence intervals back from backend!');
     }
   })
-  .catch(err => console.error('Error:', err));
+  .catch(err => {
+    console.error('Error:', err);
+    alert('Something went terribly wrong')
+  });
 });
 
 /********************************************************************

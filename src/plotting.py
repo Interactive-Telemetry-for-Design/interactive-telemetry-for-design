@@ -5,19 +5,12 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
 def prepare_data(df: pd.DataFrame, confidence_threshold: float = 0):
-    print(confidence_threshold)
-    # confidence_threshold = 1.0
     # Replace None in LABEL with 'not labelled'
     df['LABEL'] = df['LABEL'].fillna('not labelled')
     
-    df.to_csv('lamasdfsadf.csv')
-
     # Change label to 'anomaly' for rows below confidence threshold
     df.loc[df['CONFIDENCE'] <= confidence_threshold, 'LABEL'] = 'anomaly'
 
-    # print(df['CONFIDENCE'])
-    print(df['LABEL'].unique())
-    
     timestamps = df.iloc[:, 0]
     labels = df['LABEL'].astype('category') 
     num_colors = len(labels.cat.categories)
@@ -47,8 +40,5 @@ def prepare_data(df: pd.DataFrame, confidence_threshold: float = 0):
 
     principal_df['TIMESTAMP'] = timestamps.values
     principal_df['COLOUR'] = labels.values
-
-    print(f'principal_df')
-    print(principal_df)
 
     return principal_df, label_color_mapping
