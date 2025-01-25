@@ -26,6 +26,9 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Test df
 df = None
+
+# TODO:
+df = pd.read_csv(config.DATA_DIR / 'GoPro_test.csv')
 settings = None
 file_paths = None
 
@@ -52,9 +55,11 @@ def predict_cont_no_show():
     return render_template('predict_continue.html', show_model_upload=False)
 
 
-@app.route('/predict', methods=['POST'])
+@app.route('/predict', methods=['GET'])
 def predict():
-    return render_template('predict.html')
+    return render_template('predict.html', video_src=f'/uploads/cut-GH010039-0.2.mp4')
+    # TODO:
+    return render_template('predict.html', video_src=f'/uploads/{Path(file_paths['mp4_path']).name}')
 
 @app.route('/download_model', methods=['GET'])
 def download_model():
@@ -284,12 +289,27 @@ def upload_files():
 def plot():
     return render_template('plot.html')
 
-@app.route('/get_plot_data')
+@app.route('/get_plot_data', methods=['POST'])
 def get_plot_data():
-    x_col = request.args.get('x', 'PC_1')
-    y_col = request.args.get('y', 'PC_2')
+    try:
+        data = request.json
+        print("Received data:", data)  # Debugging: Check payload
+        x_col = data.get('x')
+        y_col = data.get('y')
+        ci = float(data.get('ci', 0))  # Ensure 'ci' is a float
+    except Exception as e:
+        print("Error parsing request data:", str(e))
+        return {"error": "Invalid input data"}, 400
+    print(ci)
+    if 'CONFIDENCE' in df.columns:
+        principal_df, mapping = prepare_data(df.copy(), ci)
+    else:
+        df['CONFIDENCE'] = np.random.rand(len(df))
+        principal_df, mapping = prepare_data(df.copy(),ci)
 
-    principal_df, mapping = prepare_data(df, 0.4)
+    
+    
+
 
     data = {
         'x': principal_df[x_col].tolist(),
