@@ -122,10 +122,11 @@
 
         function checkContinue() {
             let myBoolean = '{{ show_model_upload }}';
-            console.log(myBoolean);
 
-
-            const modelHere = document.getElementById('model-upload').files.length > 0;
+            
+            const yeet = document.getElementById('model-upload')?.files?.length
+            const modelHere = (yeet === undefined) ? true : document.getElementById('model-upload').files.length > 0
+            // const modelHere = document.getElementById('model-upload')?.files?.length > 0;
             const modelUpload = (myBoolean && modelHere) || (!myBoolean && !modelHere);
             const mp4Upload = document.getElementById('mp4-upload').files.length > 0;
             const csvRequired = document.getElementById('toggle-CSV-upload').checked;
@@ -150,6 +151,11 @@
                 predictBtn.disabled = true;
             }
         }
+        function setAction(action) {
+    document.getElementById('action-input').value = action;
+    // If you're using a form, you might want to submit it programmatically
+    document.forms[0].submit(); // Adjust selector if you have multiple forms
+}
     </script>
 </body>
 </html>

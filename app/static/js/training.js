@@ -62,6 +62,41 @@ const DEFAULT_BLOCK_WIDTH_PX = 70;
  ********************************************************************/
 video.addEventListener('loadedmetadata', () => {
   initTimelines();
+
+  const is_retraining = '{{ is_retraining }}';
+
+  if (is_retraining) {
+
+    fetch('/get_labels')
+      .then(response => response.json())
+      .then(data => {
+        for (const label of data.labels) {
+          colorIndex++;
+          const color = getRandomColor(colorIndex);
+          const labelId = Date.now() + '-' + Math.random();
+          const labelObj = { id: labelId, name: label, color };
+        
+          labels.push(labelObj);
+        
+          const button = document.createElement('button');
+          button.classList.add('label-button');
+          button.style.backgroundColor = color;
+          button.innerText = label;
+        
+          // On click => create new GT block at current video time
+          button.addEventListener('click', () => {
+            createBlock(labelObj);
+          });
+        
+          labelList.appendChild(button);
+        }
+        console.log('Labels fetched dynamically:', data.labels);
+      })
+      .catch(error => {
+        console.error('Error fetching labels:', error);
+      });
+
+  }
 });
 
 function initTimelines() {
@@ -369,26 +404,22 @@ function createBlock(label) {
  ********************************************************************/
 function getRandomColor(index = null) {
   const palette = [
-    '#FF0000',    // Bright Red (maximum contrast)
-    '#00FFFF',    // Cyan (highest contrast with red)
-    '#000000',    // Black 
-    '#FFFFFF',    // White
-    '#00FF00',    // Bright Green
-    '#0000FF',    // Blue
-    '#FFFF00',    // Yellow
-    '#FF00FF',    // Magenta
-    '#FFA500',    // Orange
-    '#800080',    // Purple
-    '#008000',    // Dark Green
-    '#FFC0CB',    // Pink
-    '#A52A2A',    // Brown
-    '#808080',    // Gray
-    '#4B0082',    // Indigo
-    '#40E0D0',    // Turquoise
-    '#FA8072',    // Salmon
-    '#708090',    // Slate Gray
-    '#D2691E',    // Chocolate
-    '#20B2AA'     // Light Sea Green
+    '#c81d25',    
+    '#00FFFF',    
+    '#2fff00',    
+    '#0000FF',    
+    '#ffe74c',    
+    '#FF00FF',    
+    '#FFA500',    
+    '#800080',    
+    '#008000',    
+    '#A52A2A',    
+    '#4B0082',    
+    '#FA8072',    
+    '#D2691E',    
+    '#20B2AA',     
+    '#731500',
+    '#ff206e'
 ];
   
   if (index !== null && index >= 0 && index < palette.length) {
@@ -781,3 +812,5 @@ function adoptAIBlock(aiBlock){
   unselectAIBlock();
   console.log('Adopted block => new GT block', newBlock);
 }
+
+

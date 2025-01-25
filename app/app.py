@@ -31,11 +31,9 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 df = None
 settings = {}
 stored_sequences = None
-label_mapping = pd.DataFrame()
 model = None
 stored_sequences = None
 label_mapping = {}
-df = None
 prediction_df = None
 padded_sequences = None
 padded_labels = None
@@ -48,9 +46,10 @@ def upload_page():
 def training():
     global df
     df = labeler.frame_index(settings['video_path'], df)
+    is_retraining = request.form.get('is_retraining', False)
+
     if request.method == 'GET':
-        print(settings)
-        return render_template('training.html', video_src=f'/uploads/{Path(settings['video_path']).name}')
+        return render_template('training.html', video_src=f'/uploads/{Path(settings['video_path']).name}', is_retraining=is_retraining)
     elif request.method == 'POST':
         return process_blocks()
     else:
@@ -62,11 +61,13 @@ def predict_continue():
 
 @app.route('/alternative_continue', methods=['GET'])
 def predict_cont_no_show():
-    model_done(padded_sequences, padded_labels, stored_sequences)
+    global stored_sequences
+    stored_sequences = model_done(padded_sequences, padded_labels, stored_sequences)
     return render_template('predict_continue.html', show_model_upload=False)
 
 @app.route('/predict', methods=['GET'])
 def predict():
+    df = labeler.frame_index(settings['video_path'], df)
     return render_template('predict.html', video_src=f'/uploads/{Path(settings['video_path']).name}')
 
 @app.route('/download_model', methods=['GET'])
@@ -98,11 +99,8 @@ def process_blocks():
     blocks = data.get("blocks", [])
     epochs = data.get("epochs", 5)
     settings['epochs'] = epochs
-    pprint(label_mapping)
-    pprint(blocks)
     results = modelfunc.run_model(blocks, settings, model=model, unlabeled_df=df, label_mapping=label_mapping, stored_sequences=stored_sequences)
     result_list, settings, model, prediction_df, label_mapping, df, padded_sequences, padded_labels = results
-    print(len(result_list))
 
     print('Received blocks from GT:', blocks)
     print('Requested epochs:', epochs)
@@ -168,7 +166,6 @@ def handle_upload():
         mp4_file.save(mp4_path)
         settings['video_path'] = mp4_path
         
-        
     if csv_file and csv_file.filename:
         if not mp4_file:
             flash('Error: MP4 file is required when uploading a CSV.')
@@ -197,6 +194,7 @@ def handle_upload():
         df = df_t2
         prediction_df = df
         return redirect(url_for('training'))
+        # return render_template('training.html', is_retraining=False)
 
     # If 'mp4_path' is present, run the extract method
     if 'video_path' in settings and not 'imu_path' in settings:
@@ -239,12 +237,14 @@ def upload_files():
         settings['model_path'] = str(model_path)
         try:
             model, label_mapping, settings, stored_sequences = load_model(str(model_path))
+            print(stored_sequences)
+            print(type(stored_sequences))
         except Exception as e:
             flash('Error with uploaded zip')
             print(e)
             return redirect(url_for('predict_continue'))
 
-    
+
     if video_file and video_file.filename:
         app.config['UPLOAD_FOLDER']
         mp4_path = app.config['UPLOAD_FOLDER'] / video_file.filename
@@ -300,7 +300,9 @@ def upload_files():
     if action == 'predict':
         return redirect(url_for('predict'))
     elif action == 'continue_training':
-        return redirect(url_for('training'))
+        return redirect(url_for('training', is_retraining=True))
+        # return redirect(url_for('training'))
+        # return render_template('training.html', is_retraining=True)
     
     if should_reroute:
         return redirect(url_for('predict_continue'))
@@ -321,14 +323,24 @@ def get_plot_data():
     except Exception as e:
         print("Error parsing request data:", str(e))
         return {"error": "Invalid input data"}, 400
-    print(ci)
     df_t = prediction_df.copy()
-    if 'CONFIDENCE' in df_t.columns:
-        principal_df, mapping = prepare_data(df_t, ci, settings['stratify'])
-    else:
+    if 'CONFIDENCE' not in df_t.columns:
         df_t['CONFIDENCE'] = np.random.rand(len(df_t))
-        principal_df, mapping = prepare_data(df_t.copy(),ci, settings['stratify'])
+        
+    df_t = df_t.astype({  # Nobody set this would be fun
+    'TIMESTAMP': 'float64',
+    'ACCL_x': 'float64',
+    'ACCL_y': 'float64',
+    'ACCL_z': 'float64',
+    'GYRO_x': 'float64',
+    'GYRO_y': 'float64',
+    'GYRO_z': 'float64',
+    'FRAME_INDEX': 'category',
+    'LABEL': 'object',
+    'CONFIDENCE': 'float64'
+    })
 
+    principal_df, mapping = prepare_data(df_t.copy(),ci, settings['stratify'])
     data = {
     'x': principal_df[x_col].tolist(),
         'y': principal_df[y_col].tolist(),
@@ -348,3 +360,54 @@ def serve_video(filename: str):
     if not file_path.exists():
         abort(404, description='Video file not found.')
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/get_labels', methods=['GET'])
+def get_labels():
+    return jsonify({
+        "status": "success",
+        "labels": [label for label, _ in sorted(label_mapping.items(), key=lambda mapping: mapping[1])],
+    })
+
+@app.route('/predict_blocks', methods=['POST'])
+def predict_blocks():
+    global stored_sequences
+    global label_mapping
+    global df
+    global settings
+    global prediction_df
+    global model
+    global padded_sequences
+    global padded_labels
+
+
+    data = request.json
+    epochs = data.get("epochs", 5)
+    settings['epochs'] = epochs
+    results = modelfunc.model_predict(settings, model=model, label_mapping=label_mapping)
+    prediction_df, result_list = results
+
+    # print('Requested epochs:', epochs)
+
+    # same label intervals for AI vs Ci => chunk boundaries match
+
+
+    predictions = []
+
+    for result in result_list:
+        predictions.append({
+            "frame_number": result['frame_number'],
+            "label": result['label'],
+            "confidence": result['confidence'],
+            "source": 'AI',
+        })
+        predictions.append({
+            "frame_number": result['frame_number'],
+            "label": result['label'],
+            "confidence": result['confidence'],
+            "source": 'Ci',
+        })
+
+    return jsonify({
+        "status": "success",
+        "predictions": predictions
+    })

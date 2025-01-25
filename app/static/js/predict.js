@@ -409,19 +409,12 @@ addLabelButton.addEventListener('click', () => {
 sendAnnotationsButton.addEventListener('click', () => {
   const epochCount = parseInt(epochInput.value, 10) || 5;
 
-  // gather GT blocks
-  const result = blocks.map(block => ({
-    label: block.labelName,
-    frame_start: block.start,
-    frame_end: block.end
-  }));
-
   const payload = {
-    blocks: result,
     epochs: epochCount
   };
 
-  fetch('/process_blocks', {
+  alert('Epochs sent to backend!');
+  fetch('/predict_blocks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -429,13 +422,16 @@ sendAnnotationsButton.addEventListener('click', () => {
   .then(r => r.json())
   .then(data => {
     console.log('Server response:', data);
-    alert('Blocks + epochs sent to backend!');
 
     if (data.predictions) {
       chunkAndRenderPredictions(data.predictions);
+      alert('Got predictions and confidence intervals back from backend!');
     }
   })
-  .catch(err => console.error('Error:', err));
+  .catch(err => {
+    alert('Something went terribly wrong')
+    console.error('Error:', err)
+  });
 });
 
 /********************************************************************

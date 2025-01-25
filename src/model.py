@@ -181,8 +181,7 @@ def predict(model, sequences, label_mapping):
     reverse_label_mapping = {idx: label for label, idx in label_mapping.items()}
     predicted_labels = [[reverse_label_mapping[pred_class] for pred_class in sequence] for sequence in predicted_classes]
     predicted_labels = np.array(predicted_labels)
-    # pprint(predicted_labels)
-    pprint(predicted_labels.shape)
+   
 
     # Combine sequences, predicted labels, and confidence scores into a DataFrame
     prediction_data = sequencing.combine_and_restitch_sequences(sequences, predicted_labels, confidence_scores)
@@ -218,7 +217,6 @@ def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_map
         settings["from_scratch"] = True
         label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
     n_labels = len(label_mapping)
-    pprint(label_mapping)
     
     # label datapoints
     df = unlabeled_df.copy()

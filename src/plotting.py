@@ -5,8 +5,6 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
 def prepare_data(df: pd.DataFrame, confidence_threshold: float = 0, sample_ratio: float = 0.5):
-    print(df.dtypes)
-    print(df.head(7))
     # Replace None in LABEL with 'not labelled'
     df['LABEL'] = df['LABEL'].fillna('not labelled')
     
