@@ -11,7 +11,7 @@ from config import config
 from dotenv import load_dotenv
 from src import labeler
 from src import model as modelfunc
-from src.model import save_model, load_model
+from src.model import save_model, load_model, model_done
 from pprint import pprint
 
 load_dotenv('.env')
@@ -33,6 +33,12 @@ settings = {}
 stored_sequences = None
 label_mapping = pd.DataFrame()
 model = None
+stored_sequences = None
+label_mapping = {}
+df = None
+prediction_df = None
+padded_sequences = None
+padded_labels = None
 
 @app.route('/')
 def upload_page():
@@ -56,6 +62,7 @@ def predict_continue():
 
 @app.route('/alternative_continue', methods=['GET'])
 def predict_cont_no_show():
+    model_done(padded_sequences, padded_labels, stored_sequences)
     return render_template('predict_continue.html', show_model_upload=False)
 
 
@@ -89,10 +96,8 @@ def process_blocks():
 
     data = request.json
     blocks = data.get("blocks", [])
-    # blocks = [{'label': 'walking', 'frame_start': 0, 'frame_end': 2640}, {'label': 'left', 'frame_start': 2820, 'frame_end': 3255}, {'label': 'rechtdoor', 'frame_start': 3255, 'frame_end': 4830}, {'label': 'right', 'frame_start': 4830, 'frame_end': 5160}, {'label': 'rechtdoor', 'frame_start': 8099, 'frame_end': 12735}, {'label': 'stopping', 'frame_start': 12735, 'frame_end': 13110}, {'label': 'standing', 'frame_start': 13110, 'frame_end': 13800}, {'label': 'right', 'frame_start': 18780, 'frame_end': 19035}]
     epochs = data.get("epochs", 5)
     settings['epochs'] = epochs
-    pprint(df.head(10)) # test
     results = modelfunc.run_model(blocks, settings, model=model, unlabeled_df=df, label_mapping=label_mapping, stored_sequences=stored_sequences)
     result_list, settings, model, prediction_df, label_mapping, df, padded_sequences, padded_labels = results
     print(len(result_list))
@@ -118,42 +123,6 @@ def process_blocks():
             "confidence": result['confidence'],
             "source": 'Ci',
         })
-
-    # # AI data
-    # for f in range(1, 601):
-    #     conf = random.uniform(0.4, 0.8)
-    #     predictions.append({
-    #         "frame_number": f,
-    #         "label": "Label1",
-    #         "confidence": conf,
-    #         "source": "AI"
-    #     })
-    # for f in range(601, 1001):
-    #     conf = random.uniform(0.2, 0.6)
-    #     predictions.append({
-    #         "frame_number": f,
-    #         "label": "Label2",
-    #         "confidence": conf,
-    #         "source": "AI"
-    #     })
-
-    # # Ci data
-    # for f in range(1, 601):
-    #     conf = random.uniform(0.7, 1.0)
-    #     predictions.append({
-    #         "frame_number": f,
-    #         "label": "Label1",
-    #         "confidence": conf,
-    #         "source": "Ci"
-    #     })
-    # for f in range(601, 1001):
-    #     conf = random.uniform(0.3, 0.7)
-    #     predictions.append({
-    #         "frame_number": f,
-    #         "label": "Label2",
-    #         "confidence": conf,
-    #         "source": "Ci"
-    #     })
 
     return jsonify({
         "status": "success",
@@ -242,6 +211,10 @@ def handle_upload():
 def upload_files():
     global df
     global settings
+    global model
+    global label_mapping
+    global settings
+    global stored_sequences
     model_file = request.files.get('model_upload')
     video_file = request.files.get('mp4_upload')
     csv_file = request.files.get('csv_upload')
@@ -251,10 +224,7 @@ def upload_files():
     action = request.form.get('action')
 
     if model_file and model_file.filename:
-        global model
-        global label_mapping
-        global settings
-        global stored_sequences
+        
 
         app.config['UPLOAD_FOLDER']
         model_path = app.config['UPLOAD_FOLDER'] / model_file.filename
@@ -263,7 +233,7 @@ def upload_files():
         try:
             model, label_mapping, settings, stored_sequences = load_model(str(model_path))
         except Exception as e:
-            flash(Error with uploaded zip)
+            flash('Error with uploaded zip')
             print(e)
             return redirect(url_for('predict_continue'))
 

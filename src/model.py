@@ -137,7 +137,7 @@ def label_vectorize(df, label_mapping, unique_labels):
 
     df = df.drop(columns=["LABEL"]).reset_index(drop=True)
     df = pd.concat([df, label_columns], axis=1)
-    print(f"One-hot encoded labels shape: {df.shape}")
+    # print(f"One-hot encoded labels shape: {df.shape}") # test
     return df
 
 
@@ -174,7 +174,6 @@ def predict(model, sequences, label_mapping):
     # Predict current video
     predict_sequences = sequencing.get_sequences_pure_data(sequences)
     predictions = model.predict(predict_sequences)  # shape: batches, n_datapoints, n_labels
-    # pprint(predictions.shape)
     predicted_classes = np.argmax(predictions, axis=-1)
     confidence_scores = np.max(predictions, axis=-1)
 
@@ -211,7 +210,7 @@ def predict(model, sequences, label_mapping):
     return prediction_df, result_list
 
 
-def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_mapping=None, stored_sequences=None):
+def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_mapping={}, stored_sequences=None):
     # check if labels are the same
     unique_labels = sorted(set(item["label"] for item in labeled_frames))
     current_labels = sorted(label_mapping.keys())
@@ -233,10 +232,11 @@ def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_map
 
     # convert df using tf.one_hot
     df = label_vectorize(df, label_mapping, unique_labels)
-    # pprint(df.head(10))
+
     # make sequences from df
     sequences = sequencing.create_sequence(df, settings["overlap"], settings["length"], target_sequence_length=settings["target_sequence_length"])
     settings["target_sequence_length"] = sequences.shape[1]
+
     padded_sequences, padded_labels = sequencing.get_filtered_sequences_and_labels(sequences)
     all_sequences = sequencing.save_used_data(padded_sequences, padded_labels, stored_sequences)
     train_sequences, train_labels = all_sequences[:,:,0:6], all_sequences[:,:,6:]

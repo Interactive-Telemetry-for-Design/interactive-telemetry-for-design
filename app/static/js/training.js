@@ -365,15 +365,20 @@ function createBlock(label) {
 /********************************************************************
  * LABELS
  ********************************************************************/
-function getRandomColor() {
-  const letters = '0123456789ABCDEF';
-  let color = '#';
-  for (let i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
+function getRandomColor(index = null) {
+  const palette = [
+    '#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', 
+    '#1abc9c', '#34495e', '#16a085', '#2980b9', '#27ae60', 
+    '#c0392b', '#d35400', '#8e44ad', '#f1c40f', '#e67e22', 
+    '#2c3e50', '#7f8c8d', '#bdc3c7', '#95a5a6', '#ecf0f1'
+  ];
+  
+  if (index !== null && index >= 0 && index < palette.length) {
+    return palette[index];
   }
-  return color;
+  
+  return palette[Math.floor(Math.random() * palette.length)];
 }
-
 addLabelButton.addEventListener('click', () => {
   const labelName = prompt('Enter a name for the new label:', `Label ${labelCounter}`);
   
