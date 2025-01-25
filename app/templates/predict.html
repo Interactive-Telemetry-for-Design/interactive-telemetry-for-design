@@ -37,12 +37,12 @@
         </div>
 
           <button id="sendAnnotationsButton" style="margin-top: 10px;">
-            Train and Predict
+            Predict
           </button>
       
-          <button id="finishButton" style="margin-top: 10px;">
-            Finish
-          </button>
+          <form method="GET" action="{{ url_for('predict_cont_no_show') }}">
+            <button id="finishButton" style="margin-top: 10px;" type="submit">Finish</button>
+          </form>
         </div>
       
         <!-- Main Panel: video + scrollable timelines -->

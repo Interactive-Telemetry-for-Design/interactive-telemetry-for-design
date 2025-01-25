@@ -47,7 +47,7 @@ const timelinesContainer = document.querySelector('.timelines-container');
 const FPS = 60000 / 1001;
 
 // 1 px = 15 frames
-const FRAMES_PER_PIXEL = 15;
+const FRAMES_PER_PIXEL = 5;
 
 // We'll ensure timeline width is at least some fallback
 const MIN_TIMELINE_WIDTH = 1600;
