@@ -3,16 +3,13 @@
 [![download](https://img.shields.io/badge/download-.zip-brightgreen)](https://github.com/Interactive-Telemetry-for-Design/interactive-telemetry-for-design/archive/refs/heads/main.zip)
 
 # Interactive Telemetry for Design
+This project aims to enable designers to engage in data-driven design through an active learning interface. IMU telemetry data (accelerometer and gyroscope) that is collected from the usage of the designer's prototype can be utilised to detect anomalies. This data can then give insights to designers to refine the prototype.
 
-This project aims to enable designers to do data-driven design using active learning. 
-The repository consists of two main parts, the Python code and the html website.
-The model uses a 'Long, Short Term Memory' architecture to interpret long term dependencies of consumer patterns, as well as detect anomalies. 
-These patterns are gathered through analysis of telemetry data; specifically, a video stream, accelerometer and gyroscope. 
-This video stream is then used for active learning, as the model gets retrained based on prompting uncertain sections. 
-The resulting semi-predicted timeline can then be used to give insights to designers to improve the prototype. 
-The prototype is an invariant for this model: in theory any object, tool or appliance is compatible.
+The model is built on a Long Short-Term Memory (LSTM) architecture, which excels at interpreting long-term dependencies in consumer usage patterns and identifying anomalies. The prototype is an invariant for this model: in theory any object, tool or appliance is compatible.
 
-After the model is trained, it can be used for anomaly detection solely on the telemetry of unseen data. This approach not only optimises data utilisation for anomaly detection but also aligns with ethical principles by minimizing privacy risks and environmental impact through efficient data processing.
+## Guidelines for Use
+- **Quantitative Analysis**: Use this for tasks like stability testing and detecting unusual user behaviour or anomalies.
+- **Qualitative Analysis**: Avoid using this for tasks where you need subjective feedback from prototype testers, such as asking, "Do you prefer this prototype over this product?" or "Would you use this product in your daily life and why or why not?"
 
 ## Getting Started
 ### Dependencies
@@ -39,17 +36,21 @@ or download as a ZIP file.
     python -m venv .venv
     ```
 
-2. Activate the environment and install the dependencies
+1. Activate the environment
 
     Using Git Bash:
     ```
     source .venv/Scripts/activate
-    pip install -r requirements_win32.txt
     ```
 
     Using CMD:
     ```
     .venv\Scripts\activate.bat
+    ```
+
+1. Install the dependencies
+
+    ```
     pip install -r requirements_win32.txt
     ```
 
@@ -60,7 +61,7 @@ or download as a ZIP file.
     python3 -m venv .venv
     ```
 
-2. Activate the environment and install the dependencies
+1. Activate the environment and install the dependencies
     ```
     source .venv/bin/activate
     pip install -r requirements_linux.txt
@@ -76,14 +77,13 @@ flask run
 and go to [http://localhost:5000](http://localhost:5000).
 
 ## Using The Interface
-In the interface, you can either upload video file in below formats, or use (pre-extracted) IMU telemetry data in a CSV file.
+### Input
+You can provide data in two ways:
+- Video file with IMU streams (e.g. GoPro .MP4 file containing video and gpmf stream)
+- Video file + (pre-extracted) IMU telemetry data CSV file
 
-The model predicts labels for the whole video with associated confidence score.
-
-Below an input threshold it becomes an anomaly.
-
-The following formats can be uploaded for video and imu telemetry:
-
+### Supported File Formats
+Using [telemetry-parser](https://github.com/AdrianEddy/telemetry-parser), the following file formats are supported for IMU stream parsing and extraction:
 - GoPro (HERO 5 and later)
 - Sony (a1, a7c, a7r V, a7 IV, a7s III, a9 II, a9 III, FX3, FX6, FX9, RX0 II, RX100 VII, ZV1, ZV-E10, ZV-E10 II, ZV-E1, a6700)
 - Insta360 (OneR, OneRS, SMO 4k, Go, GO2, GO3, GO3S, Caddx Peanut, Ace, Ace Pro)
@@ -104,9 +104,50 @@ The following formats can be uploaded for video and imu telemetry:
 - KanDao (Obisidian Pro, Qoocam EGO)
 - [CAMM format](https://developers.google.com/streetview/publish/camm-spec)
 
-We use [telemetry-parser](https://github.com/AdrianEddy/telemetry-parser) for extracting the IMU telemetry from these file formats.
+Keep in mind that loading large video files may take a few seconds.
 
-GT is the ground truth timeline, AI is the timeline for the predictions from the AI, Ci is the timeline for confidence score, where 0 = red, 1 = green, and AN stands for anomaly. if you click on a block in the AI timeline, you can adopt the prediction onto the ground truth timeline, but it will override any overlapping blocks annotated by the user.
+### Interface Features
+- **Customisation**: Since the distribution of the IMU telemetry data is specific to the prototype, advanced users can tweak the hyperparameters to improve the model's performance on a particular object.
 
-### License
+- **Timelines**:
+    - **GT (Ground Truth)**: User-annotated labels.
+    - **AI**: Model predictions.
+    - **Ci (Confidence Score)**: Visual representation of confidence scores (0 = red, 1 = green).
+
+    Each pixel in the timelines represents approximately 5 frames, with each frame containing around 3 IMU telemetry points in a 60 fps video sampled at 200 Hz.
+
+- **PCA Plot**: Located at the bottom of the page. Clicking a data point seeks to the corresponding timestamp in the video. To refresh the PCA plot, manually request a new axis (e.g., after the model updates it's predictions).
+
+- **Labeling**:
+    - Add labels by clicking the 'Add label' block, which creates a continuous block on the ground truth timeline at the playhead (red bar).
+    - Ensure at least one labeled block is added before pressing the 'Predict and Train' button.
+
+- **Training and Prediction**:
+    - Pressing the 'Predict and Train' button sends the labels to the backend for (re)training the model and generating predictions.
+    - During processing, you can continue labeling as needed.
+    - After predictions are received, the AI and Ci timelines are updated:
+        - **AI Timeline**: Displays blocks of continuous predictions of consecutive frames with the same label.
+        - **Ci Timeline**: Shows the confidence score's associated colour for each pixel based on the first frame's score within the pixel's represented frames (around 5).
+
+- **Adopting Predictions**:
+    - Click on a block in the AI timeline and then on 'adopt' to apply the prediction to the ground truth timeline.
+    - **Note**: This action overrides any overlapping user-annotated blocks, so use it cautiously.
+
+- **Model Training Constraints**:
+    - Do not press the 'Train and Predict' again before the model has updated it's predictions.
+    - Additional labels can be added at any time, but this will automatically retrain the model from scratch, which may take some time.
+    - For better model performance, it's best to label each action equally.
+    - The more epochs, the more the model (over)fits to the ground truth timeline, but will never reach 100% accuracy due to neuron dropout.
+
+### Finalizing and Exporting
+Once annotation and labeling are complete, click the 'Finish' button to navigate to the export page, where you can:
+
+- Download the trained model.
+- Retrain the model on another video.
+- Use the model to infer predictions on new, unseen data.
+    
+### Anomaly Detection
+On the predict page a slider allows you to set the anomaly threshold (manually refresh the PCA plot). Data points with confidence scores below the threshold are labeled as anomalies in the PCA plot.
+
+## License
 This project is [licensed](https://github.com/interactive-Telemetry-for-Design/interactive-telemetry-for-design/blob/main/LICENSE) under the terms of the GNU General Public License v3.0 (GPLv3).
