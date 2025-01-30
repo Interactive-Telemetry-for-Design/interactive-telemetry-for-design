@@ -283,6 +283,8 @@ def run_model(labeled_frames, settings, model=None, unlabeled_df=None, label_map
 
 def model_predict(df, settings, model, label_mapping):
     n_labels = len(label_mapping)
+    df.dropna(subset=["FRAME_INDEX"], inplace=True)
+    df["FRAME_INDEX"] = df["FRAME_INDEX"].astype(int)
 
     sequences = sequencing.create_sequence(df, settings["overlap"], settings["length"])
     prediction_df, result_list = predict(model, sequences, label_mapping)
