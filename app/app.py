@@ -111,6 +111,7 @@ def process_blocks():
     # print(model)
     results = modelfunc.run_model(blocks, settings, model=model, unlabeled_df=df, label_mapping=label_mapping, stored_sequences=stored_sequences)
     result_list, settings, model, prediction_df, label_mapping, padded_sequences, padded_labels = results
+    
 
     print('Received blocks from GT:', blocks)
     print('Requested epochs:', epochs)
